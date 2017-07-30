@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Gdzie Kupić?</string>
+    <string name="my_location">Moja lokalizacja</string>
+    <string name="search_text">Wyszukaj tutaj</string>
+</resources>
