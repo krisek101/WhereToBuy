@@ -4,9 +4,6 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
-import android.graphics.PorterDuff;
-import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.Build;
 import android.preference.PreferenceManager;
@@ -18,9 +15,12 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.res.ResourcesCompat;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
-import android.widget.ImageView;
 
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -43,6 +43,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import simpleapp.wheretobuy.R;
@@ -50,6 +51,9 @@ import simpleapp.wheretobuy.constants.ClearableAutoCompleteTextView;
 import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.helpers.ListenerHelper;
+import simpleapp.wheretobuy.models.AutoCompleteResult;
+import simpleapp.wheretobuy.models.RequestToQueue;
+import simpleapp.wheretobuy.models.Shop;
 
 import static simpleapp.wheretobuy.constants.Constants.SPEECH_REQUEST_CODE;
 
@@ -57,12 +61,19 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
 
     // Location and map
-    private GoogleMap mMap;
+    public GoogleMap mMap;
     private LocationRequest locationRequest;
     private GoogleApiClient mGoogleApiClient;
-    private LatLng userLocation;
+    public LatLng userLocation;
     private Marker userLocationMarker;
-    private ClearableAutoCompleteTextView searchText;
+
+    // UI
+    public ClearableAutoCompleteTextView searchText;
+
+    // Others
+    public RequestQueue queue;
+    public List<AutoCompleteResult> autoCompleteResults = new ArrayList<>();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,20 +83,44 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         requestPermissions();
         prepareGoogleMap();
         preLocation();
-        checkUsersSettingGPS();
         initUI();
         setListeners();
     }
 
     // initial functions
-    private void initUI(){
+    private void initUI() {
         searchText = (ClearableAutoCompleteTextView) findViewById(R.id.search_text);
         searchText.setClearButton(ResourcesCompat.getDrawable(getResources(), R.drawable.clear, null));
+        queue = Volley.newRequestQueue(this);
     }
 
-    private void setListeners(){
+    private void setListeners() {
         ListenerHelper listenerHelper = new ListenerHelper(this);
         listenerHelper.setListener(findViewById(R.id.search_mic), "click");
+        searchText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // clear
+                autoCompleteResults.clear();
+                if (queue != null) {
+                    queue.cancelAll(Constants.TAG_AUTOCOMPLETE);
+                }
+
+                // update list from Nokaut API
+                RequestToQueue categoryRequest = new RequestToQueue(Constants.TAG_CATEGORY, MapActivity.this);
+                categoryRequest.setCategoryAutocompleteUrl(s.toString());
+                categoryRequest.doRequest();
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+            }
+        });
     }
 
     // Permissions and settings
@@ -191,6 +226,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         } else {
             Log.e("Google Play Services", "Unavailable");
         }
+        checkUsersSettingGPS();
     }
 
     private void getLocation() {
