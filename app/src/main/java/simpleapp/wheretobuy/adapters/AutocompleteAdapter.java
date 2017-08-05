@@ -58,6 +58,7 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
             @Override
             public void onClick(View view) {
                 mapActivity.mMap.clear();
+                mapActivity.offers.clear();
                 Marker m = mapActivity.mMap.addMarker(new MarkerOptions().position(mapActivity.userLocation).title("Moja lokalizacja"));
                 m.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
                 mapActivity.searchText.setText(result.getName());

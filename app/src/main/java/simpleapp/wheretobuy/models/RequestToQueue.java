@@ -84,7 +84,7 @@ public class RequestToQueue {
         mapActivity.queue.add(jsonObjRequest);
     }
 
-    public void doRequest(final Shop shop) {
+    public void doRequest(final Shop shop, final List<Offer> offers) {
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, link, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
@@ -92,7 +92,7 @@ public class RequestToQueue {
                     switch (tag) {
                         case Constants.TAG_PLACES:
                             Log.i("LINK", link);
-                            onResponsePlaces(response, shop);
+                            onResponsePlaces(response, shop, offers);
                             break;
                     }
                 } catch (JSONException e) {
@@ -149,13 +149,48 @@ public class RequestToQueue {
 
     private void onResponseResultDetails(JSONObject response) throws JSONException {
         JSONArray ja = response.getJSONArray("offers");
-        String shopId = "", shopName = "", shopUrl = "", shopLogoUrl = "";
+        String shopId = "", shopName = "", shopUrl = "", shopLogoUrl = "", offerClickUrl = "", offerCategory = "", offerTitle = "", offerProducer = "", offerPhotoId = "", offerDesc = "";
+        int offerAvailability = 4, offerPrice = 0;
         Shop shopModel;
+        Offer offerModel;
         List<Shop> shopsList = new ArrayList<>();
+        List<Offer> offersList = new ArrayList<>();
         boolean exists;
         for (int i = 0; i < ja.length(); i++) {
-            JSONObject shop = ja.getJSONObject(i).getJSONObject("shop");
-            shopName = shop.getString("name");
+            JSONObject offer = ja.getJSONObject(i);
+            JSONObject shop = offer.getJSONObject("shop");
+
+            // get offer details
+            if(offer.has("availability")){
+                offerAvailability = offer.getInt("availability");
+            }
+            if(offer.has("price")){
+                offerPrice = offer.getInt("price");
+            }
+            if(offer.has("title")){
+                offerTitle = offer.getString("title");
+            }
+            if(offer.has("click_url")){
+                offerClickUrl = offer.getString("click_url");
+            }
+            if(offer.has("category")){
+                offerCategory = offer.getString("category");
+            }
+            if(offer.has("producer")){
+                offerProducer = offer.getString("producer");
+            }
+            if(offer.has("description_short")){
+                offerDesc = offer.getString("description_short");
+            }
+            if(offer.has("photo_id")){
+                offerPhotoId = offer.getString("photo_id");
+            }
+            offerModel = new Offer(offerAvailability, offerPrice, offerTitle, offerCategory, offerDesc, offerClickUrl, offerProducer, offerPhotoId);
+
+            // get shop details
+            if (shop.has("name")) {
+                shopName = shop.getString("name");
+            }
             if (shop.has("id")) {
                 shopId = shop.getString("id");
             }
@@ -175,15 +210,20 @@ public class RequestToQueue {
             if (!exists && !shopModel.getId().isEmpty()) {
                 shopsList.add(shopModel);
             }
+
+            offerModel.setShop(shopModel);
+            offersList.add(offerModel);
         }
+
+        // get shops locations
         for(Shop shop : shopsList) {
             RequestToQueue requestToQueue = new RequestToQueue(Constants.TAG_PLACES, mapActivity);
             requestToQueue.setPlacesUrl(shop.getName());
-            requestToQueue.doRequest(shop);
+            requestToQueue.doRequest(shop, getOffersFromSelectedShop(offersList, shop));
         }
     }
 
-    private void onResponsePlaces(JSONObject response, Shop shop) throws JSONException {
+    private void onResponsePlaces(JSONObject response, Shop shop, List<Offer> offers) throws JSONException {
         JSONArray ja = response.getJSONArray("results");
         List<LatLng> locations = new ArrayList<>();
         for (int i = 0; i < ja.length(); i++) {
@@ -194,6 +234,10 @@ public class RequestToQueue {
             mapActivity.mMap.addMarker(new MarkerOptions().position(location).title(shop.getName()));
         }
         shop.setLocations(locations);
+        for(Offer o : offers){
+            o.setShop(shop);
+            mapActivity.offers.add(o);
+        }
     }
 
     public void setProductAutocompleteUrl(String input) {
@@ -230,9 +274,9 @@ public class RequestToQueue {
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
-            urlString.append("/offers?fields=shop.name,shop.id,shop.url,shop.url_logo");
+            urlString.append("/offers?fields=title,shop.name,shop.id,shop.url,shop.url_logo,availability,category,description_short,price,producer,photo_id,click_url");
         } else if (result.getType().equals("category")) {
-            urlString.append("/offers?fields=shop.name,shop.id,shop.url,shop.url_logo&filter%5Bcategory_id%5D=");
+            urlString.append("/offers?fields=title,shop.name,shop.id,shop.url,shop.url_logo,availability,category,description_short,price,producer,photo_id,click_url&filter%5Bcategory_id%5D=");
             urlString.append(result.getId());
         }
         setLink(urlString.toString());
@@ -264,5 +308,15 @@ public class RequestToQueue {
 
     public void setTag(String tag) {
         this.tag = tag;
+    }
+
+    private List<Offer> getOffersFromSelectedShop(List<Offer> offers, Shop shop){
+        List<Offer> returnOffers = new ArrayList<>();
+        for(Offer offer : offers){
+            if(offer.getShop().equals(shop)){
+                returnOffers.add(offer);
+            }
+        }
+        return returnOffers;
     }
 }

@@ -1,9 +1,12 @@
 package simpleapp.wheretobuy.activities;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
 import android.os.Build;
 import android.preference.PreferenceManager;
@@ -15,9 +18,15 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.res.ResourcesCompat;
+import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.TextView;
 
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
@@ -42,18 +51,25 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.squareup.picasso.Picasso;
+
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import simpleapp.wheretobuy.R;
+import simpleapp.wheretobuy.adapters.MarkerInfoWindowAdapter;
+import simpleapp.wheretobuy.adapters.OffersAdapter;
 import simpleapp.wheretobuy.constants.ClearableAutoCompleteTextView;
 import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.helpers.ListenerHelper;
 import simpleapp.wheretobuy.models.AutoCompleteResult;
+import simpleapp.wheretobuy.models.Offer;
 import simpleapp.wheretobuy.models.RequestToQueue;
 import simpleapp.wheretobuy.models.Shop;
+import simpleapp.wheretobuy.tasks.GeocoderTask;
 
 import static simpleapp.wheretobuy.constants.Constants.SPEECH_REQUEST_CODE;
 
@@ -73,6 +89,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     // Others
     public RequestQueue queue;
     public List<AutoCompleteResult> autoCompleteResults = new ArrayList<>();
+    public List<Offer> offers;
 
 
     @Override
@@ -80,6 +97,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
 
+        offers = new ArrayList<>();
         requestPermissions();
         prepareGoogleMap();
         preLocation();
@@ -171,38 +189,40 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     private void checkUsersSettingGPS() {
         if (UsefulFunctions.isOnline(this)) {
-            if (!mGoogleApiClient.isConnected()) {
-                mGoogleApiClient.connect();
-            }
-            LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
-                    .addLocationRequest(locationRequest);
-            PendingResult<LocationSettingsResult> result =
-                    LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient,
-                            builder.build());
-            result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
-                @Override
-                public void onResult(@NonNull LocationSettingsResult result2) {
-                    final Status status = result2.getStatus();
-                    switch (status.getStatusCode()) {
-                        case LocationSettingsStatusCodes.SUCCESS:
-                            // OK
-                            getLocation();
-                            break;
-                        case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
-                            // ASK FOR GPS
-                            try {
-                                status.startResolutionForResult(
-                                        MapActivity.this,
-                                        Constants.REQUEST_CHECK_SETTINGS);
-                            } catch (IntentSender.SendIntentException e) {
-                                e.printStackTrace();
-                            }
-                            break;
-                        case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
-                            break;
-                    }
+            if (mGoogleApiClient != null) {
+                if (!mGoogleApiClient.isConnected()) {
+                    mGoogleApiClient.connect();
                 }
-            });
+                LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
+                        .addLocationRequest(locationRequest);
+                PendingResult<LocationSettingsResult> result =
+                        LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient,
+                                builder.build());
+                result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
+                    @Override
+                    public void onResult(@NonNull LocationSettingsResult result2) {
+                        final Status status = result2.getStatus();
+                        switch (status.getStatusCode()) {
+                            case LocationSettingsStatusCodes.SUCCESS:
+                                // OK
+                                getLocation();
+                                break;
+                            case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+                                // ASK FOR GPS
+                                try {
+                                    status.startResolutionForResult(
+                                            MapActivity.this,
+                                            Constants.REQUEST_CHECK_SETTINGS);
+                                } catch (IntentSender.SendIntentException e) {
+                                    e.printStackTrace();
+                                }
+                                break;
+                            case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+                                break;
+                        }
+                    }
+                });
+            }
         }
     }
 
@@ -313,6 +333,15 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        mMap.setInfoWindowAdapter(new MarkerInfoWindowAdapter(this));
+
+        mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+            @Override
+            public void onInfoWindowClick(Marker marker) {
+                List<Offer> offersByPosition = getOffersByLocation(marker.getPosition());
+                showOffersInAlertDialog(offersByPosition, marker.getPosition());
+            }
+        });
     }
 
     // Others
@@ -326,5 +355,56 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             searchText.setText(spokenText);
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    // Offers
+    public List<Offer> getOffersByLocation(LatLng position) {
+        List<Offer> offersByPosition = new ArrayList<>();
+        for (Offer o : offers) {
+            if (o.getShop().getLocations().contains(position)) {
+                offersByPosition.add(o);
+            }
+        }
+        return offersByPosition;
+    }
+
+    private void showOffersInAlertDialog(List<Offer> offersByPosition, LatLng shopLocation) {
+        // alert dialog and inflater
+        final AlertDialog.Builder offersInfoWindow = new AlertDialog.Builder(this);
+        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View convertView = inflater.inflate(R.layout.offers_list_window, null);
+        offersInfoWindow.setView(convertView);
+        final AlertDialog ad = offersInfoWindow.show();
+        if (ad.getWindow() != null) {
+            ad.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        // UI
+        ImageView exit = (ImageView) convertView.findViewById(R.id.info_window_exit);
+        TextView shopName = (TextView) convertView.findViewById(R.id.shop_name);
+        TextView shopAddress = (TextView) convertView.findViewById(R.id.shop_address);
+        ListView shopOffers = (ListView) convertView.findViewById(R.id.shop_offers);
+        ImageView shopLogo = (ImageView) convertView.findViewById(R.id.shop_logo);
+
+        // Listeners
+        exit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ad.cancel();
+            }
+        });
+
+        // Logic
+        Shop shop = offersByPosition.get(0).getShop();
+
+        // Setters
+        shopName.setText(shop.getName());
+        new GeocoderTask(this, shopLocation, shopAddress).execute();
+        String logoUrl = "http://offers.gallery" + shop.getLogoUrl();
+        Picasso.with(this).load(logoUrl).into(shopLogo);
+
+        // Offers list
+        OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offersByPosition);
+        shopOffers.setAdapter(offersAdapter);
     }
 }

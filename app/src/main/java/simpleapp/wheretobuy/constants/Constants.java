@@ -16,6 +16,9 @@ public class Constants {
 
     // Tokens and Keys
     public static final String NOKAUT_TOKEN = "1/c1d3e6f5f27737fe2cb0dfd5b0046743ae4297da1c446fbe1219b8db7475367c";
-    public static final String WEB_API_GOOGLE_KEY = "AIzaSyDflSpLotdTPuGtyeZEPNHHNZGVDsft040";
+    public static final String WEB_API_GOOGLE_KEY = "AIzaSyA_C2NPat715q0hNN_S_ltWo2e1agdP1jI";
 
+    // Constants
+    public static final int SPLASH_TIME = 1000;
+    public static final String UNKNOWN_ADDRESS = "Adres nieznany";
 }
