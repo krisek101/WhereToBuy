@@ -2,11 +2,14 @@ package simpleapp.wheretobuy.constants;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -27,13 +30,18 @@ public class ClearableAutoCompleteTextView extends android.support.v7.widget.App
     }
 
     private Drawable clearButton = null;
+    private Drawable loadingGif = null;
 
-    public void setClearButton(Drawable clearButton) {
+    public void setClearButton(final Drawable clearButton, final boolean b) {
         Bitmap bitmap = ((BitmapDrawable) clearButton).getBitmap();
-        Drawable d = new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(bitmap, 25, 25, true));
-        this.clearButton = d;
-        final ClearableAutoCompleteTextView _this = this;
+        this.clearButton = new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(bitmap, 30, 30, true));
+        this.clearButton.setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_ATOP);
 
+        final ClearableAutoCompleteTextView _this = this;
+        if(b) {
+            this.setCompoundDrawablesWithIntrinsicBounds(null, null,
+                    this.clearButton, null);
+        }
         this.setOnTouchListener(new OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -54,6 +62,12 @@ public class ClearableAutoCompleteTextView extends android.support.v7.widget.App
         });
 
         this.addTextChangedListener(this);
+    }
+
+    public void setLoadingGif(Drawable loadingGif) {
+        this.loadingGif = loadingGif;
+        this.setCompoundDrawablesWithIntrinsicBounds(null, null,
+                loadingGif, null);
     }
 
     @Override

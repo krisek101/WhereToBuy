@@ -44,7 +44,7 @@ public class MarkerInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
         if (!offers.isEmpty()) {
             Offer sampleOffer = offers.get(0);
             Shop shop = sampleOffer.getShop();
-            int minPrice = 10000000, maxPrice = 0;
+            double minPrice = 10000000, maxPrice = 0;
 
             if (offers.size() == 1) {
                 price.setText("Cena: " + sampleOffer.getPrice() + " zł");
@@ -62,23 +62,5 @@ public class MarkerInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
         }
 
         return myContentsView;
-    }
-
-    public class MarkerCallback implements Callback {
-        ImageView imageView = null;
-
-        MarkerCallback(ImageView imageView) {
-            this.imageView = imageView;
-        }
-
-        @Override
-        public void onError() {
-            Log.e(getClass().getSimpleName(), "Error loading thumbnail!");
-        }
-
-        @Override
-        public void onSuccess() {
-            imageView.setVisibility(View.VISIBLE);
-        }
     }
 }

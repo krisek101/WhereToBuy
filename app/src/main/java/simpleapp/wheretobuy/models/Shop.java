@@ -1,6 +1,7 @@
 package simpleapp.wheretobuy.models;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 
 import java.util.List;
 
@@ -11,6 +12,7 @@ public class Shop {
     private String logoUrl;
     private String id;
     private List<LatLng> locations;
+    private List<Marker> markers;
 
     public Shop(String name, String url, String logoUrl, String id) {
         this.name = name;
@@ -57,5 +59,13 @@ public class Shop {
 
     public void setLocations(List<LatLng> locations) {
         this.locations = locations;
+    }
+
+    public List<Marker> getMarkers() {
+        return markers;
+    }
+
+    public void setMarkers(List<Marker> markers) {
+        this.markers = markers;
     }
 }

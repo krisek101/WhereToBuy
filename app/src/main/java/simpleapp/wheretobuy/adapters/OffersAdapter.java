@@ -56,10 +56,29 @@ public class OffersAdapter extends ArrayAdapter<Offer>{
 
         title.setText(offer.getTitle());
         price.setText("Cena: " + offer.getPrice() + " zł");
-        if(offer.getAvailability() == 0) {
-            availability.setText("Dostępny");
-            availability.setTextColor(Color.GREEN);
+        switch (offer.getAvailability()){
+            case 0:
+                availability.setText("Dostępny");
+                availability.setTextColor(Color.GREEN);
+                break;
+            case 1:
+                availability.setText("Dostępny do tygodnia");
+                availability.setTextColor(Color.parseColor("#FFA3701E"));
+                break;
+            case 2:
+                availability.setText("Dostępny powyżej tygodnia");
+                availability.setTextColor(Color.parseColor("#FFA3701E"));
+                break;
+            case 3:
+                availability.setText("Dostępny na życzenie");
+                availability.setTextColor(Color.parseColor("#FFA3701E"));
+                break;
+            default:
+                availability.setText("Sprawdź w sklepie");
+                availability.setTextColor(Color.parseColor("#FFA3701E"));
+                break;
         }
+
         PhotoHelper photoHelper = new PhotoHelper(offer.getPhotoId(), offer.getTitle(), "130x130");
         String offerUrl = photoHelper.getPhotoUrl();
         Picasso.with(context).load(offerUrl).into(photo);

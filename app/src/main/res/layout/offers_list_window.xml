@@ -49,16 +49,24 @@
         android:layout_below="@+id/shop_details"
         android:layout_centerHorizontal="true"
         android:gravity="center"
-        android:paddingBottom="15dp"
+        android:paddingBottom="10dp"
         android:textSize="14sp" />
+
+    <View
+        android:id="@+id/line"
+        android:layout_below="@+id/shop_address"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#dedede"
+        android:layout_marginBottom="5dp"/>
 
     <ListView
         android:id="@+id/shop_offers"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/shop_address"
+        android:layout_below="@+id/line"
         android:paddingBottom="10dp"
-        android:paddingEnd="5dp"
-        android:paddingStart="5dp" />
+        android:paddingEnd="7dp"
+        android:paddingStart="7dp" />
 
 </RelativeLayout>

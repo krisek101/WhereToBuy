@@ -1,9 +1,13 @@
 package simpleapp.wheretobuy.models;
 
-public class Offer {
+import android.support.annotation.NonNull;
+
+import java.util.Comparator;
+
+public class Offer implements Comparable<Offer>{
 
     private int availability;
-    private int price;
+    private double price;
     private String title;
     private String category;
     private String desc;
@@ -12,7 +16,7 @@ public class Offer {
     private String photoId;
     private Shop shop;
 
-    public Offer(int availability, int price, String title, String category, String desc, String clickUrl, String producer, String photoId) {
+    public Offer(int availability, double price, String title, String category, String desc, String clickUrl, String producer, String photoId) {
         this.availability = availability;
         this.price = price;
         this.title = title;
@@ -31,11 +35,11 @@ public class Offer {
         this.availability = availability;
     }
 
-    public int getPrice() {
+    public double getPrice() {
         return price;
     }
 
-    public void setPrice(int price) {
+    public void setPrice(double price) {
         this.price = price;
     }
 
@@ -93,5 +97,18 @@ public class Offer {
 
     public void setShop(Shop shop) {
         this.shop = shop;
+    }
+
+    @Override
+    public int compareTo(@NonNull Offer offer) {
+        if (this.getPrice() > offer.getPrice()) {
+            return 1;
+        }
+        else if (this.getPrice() < offer.getPrice()) {
+            return -1;
+        }
+        else {
+            return 0;
+        }
     }
 }

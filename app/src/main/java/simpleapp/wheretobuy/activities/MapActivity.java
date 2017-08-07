@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
 import android.os.Build;
@@ -24,6 +25,7 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -53,11 +55,12 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.squareup.picasso.Picasso;
 
-import org.w3c.dom.Text;
-
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import pl.droidsonroids.gif.GifDrawable;
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.adapters.MarkerInfoWindowAdapter;
 import simpleapp.wheretobuy.adapters.OffersAdapter;
@@ -75,7 +78,6 @@ import static simpleapp.wheretobuy.constants.Constants.SPEECH_REQUEST_CODE;
 
 public class MapActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
-
     // Location and map
     public GoogleMap mMap;
     private LocationRequest locationRequest;
@@ -89,7 +91,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     // Others
     public RequestQueue queue;
     public List<AutoCompleteResult> autoCompleteResults = new ArrayList<>();
-    public List<Offer> offers;
+    public List<Offer> offers = new ArrayList<>();
+    public List<Shop> shops = new ArrayList<>();
 
 
     @Override
@@ -97,9 +100,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
 
-        offers = new ArrayList<>();
-        requestPermissions();
         prepareGoogleMap();
+        requestPermissions();
         preLocation();
         initUI();
         setListeners();
@@ -108,8 +110,21 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     // initial functions
     private void initUI() {
         searchText = (ClearableAutoCompleteTextView) findViewById(R.id.search_text);
-        searchText.setClearButton(ResourcesCompat.getDrawable(getResources(), R.drawable.clear, null));
+        searchText.setClearButton(ResourcesCompat.getDrawable(getResources(), R.drawable.clear, null), false);
         queue = Volley.newRequestQueue(this);
+    }
+
+    public void setLoading(boolean load){
+        if(load) {
+            try {
+                GifDrawable gifFromResource = new GifDrawable(getResources(), R.drawable.loading);
+                searchText.setLoadingGif(gifFromResource);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }else{
+            searchText.setClearButton(ResourcesCompat.getDrawable(getResources(), R.drawable.clear, null), true);
+        }
     }
 
     private void setListeners() {
@@ -124,7 +139,12 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 // clear
+                clearShopsMarkers();
+                shops.clear();
+                offers.clear();
                 autoCompleteResults.clear();
+
+                // cancel queue
                 if (queue != null) {
                     queue.cancelAll(Constants.TAG_AUTOCOMPLETE);
                 }
@@ -132,13 +152,21 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 // update list from Nokaut API
                 RequestToQueue categoryRequest = new RequestToQueue(Constants.TAG_CATEGORY, MapActivity.this);
                 categoryRequest.setCategoryAutocompleteUrl(s.toString());
-                categoryRequest.doRequest();
+                categoryRequest.doRequest("");
             }
 
             @Override
             public void afterTextChanged(Editable editable) {
             }
         });
+    }
+
+    private void clearShopsMarkers(){
+        for(Shop shop : shops){
+            for(Marker m : shop.getMarkers()){
+                m.remove();
+            }
+        }
     }
 
     // Permissions and settings
@@ -175,7 +203,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                             break PERMISSIONS_SWITCH;
                         }
                     }
-                    checkUsersSettingGPS();
+                    preLocation();
                     Log.d("DEBUG", "All permissions granted!");
                 } else {
                     Log.d("DEBUG", "Request cancelled");
@@ -273,13 +301,24 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 .build();
     }
 
+    public void setUserLocationMarker() {
+        if (userLocationMarker != null) {
+            userLocationMarker.remove();
+        }
+        if(userLocation != null) {
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 13));
+            userLocationMarker = mMap.addMarker(new MarkerOptions().position(userLocation).title(getString(R.string.my_location)));
+            userLocationMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+        }
+    }
+
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         Log.i("Google map", "Connection success");
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, Constants.REQUEST_PERMISSIONS_CODE);
         } else {
-            if (UsefulFunctions.isOnline(this)) {
+            if (UsefulFunctions.isOnline(this) && mGoogleApiClient.isConnected()) {
                 LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, locationRequest, this);
             }
         }
@@ -301,8 +340,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     // save current location
                     PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext()).edit().putString("Latitude", String.valueOf(latitude)).apply();
                     PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext()).edit().putString("Longitude", String.valueOf(longitude)).apply();
-                    userLocationMarker = mMap.addMarker(new MarkerOptions().position(userLocation).title(getString(R.string.my_location)));
-                    userLocationMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+
+                    // set user location
+                    setUserLocationMarker();
 
                     // move Camera
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 13));
@@ -338,10 +378,21 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(Marker marker) {
-                List<Offer> offersByPosition = getOffersByLocation(marker.getPosition());
-                showOffersInAlertDialog(offersByPosition, marker.getPosition());
+                if (!marker.equals(userLocationMarker)) {
+                    List<Offer> offersByPosition = getOffersByLocation(marker.getPosition());
+                    showOffersInAlertDialog(offersByPosition, marker.getPosition());
+                }
             }
         });
+
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                hideKeyboard();
+            }
+        });
+
+        restoreData();
     }
 
     // Others
@@ -355,6 +406,22 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             searchText.setText(spokenText);
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void restoreData() {
+        // last location
+        if (!PreferenceManager.getDefaultSharedPreferences(this).getString("Latitude", "").isEmpty() && !PreferenceManager.getDefaultSharedPreferences(this).getString("Longitude", "").isEmpty()) {
+            userLocation = new LatLng(Double.parseDouble(PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext()).getString("Latitude", "No Latitude Value Stored")), Double.parseDouble(PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext()).getString("Longitude", "No Longitude Value Stored")));
+            setUserLocationMarker();
+        }
+    }
+
+    public void hideKeyboard(){
+        View view = MapActivity.this.getCurrentFocus();
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
     }
 
     // Offers
@@ -385,6 +452,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         TextView shopAddress = (TextView) convertView.findViewById(R.id.shop_address);
         ListView shopOffers = (ListView) convertView.findViewById(R.id.shop_offers);
         ImageView shopLogo = (ImageView) convertView.findViewById(R.id.shop_logo);
+        exit.setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_ATOP);
 
         // Listeners
         exit.setOnClickListener(new View.OnClickListener() {
@@ -404,6 +472,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         Picasso.with(this).load(logoUrl).into(shopLogo);
 
         // Offers list
+        Collections.sort(offersByPosition);
         OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offersByPosition);
         shopOffers.setAdapter(offersAdapter);
     }

@@ -1,13 +1,15 @@
 package simpleapp.wheretobuy.models;
 
+import android.os.Handler;
 import android.util.Log;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkResponse;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.google.android.gms.maps.model.IndoorBuilding;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.json.JSONArray;
@@ -35,12 +37,6 @@ public class RequestToQueue {
     private String category;
     private String language;
 
-    public RequestToQueue(String tag, String category, MapActivity mapActivity) {
-        this.tag = tag;
-        this.category = category;
-        this.mapActivity = mapActivity;
-        language = Locale.getDefault().getLanguage();
-    }
 
     public RequestToQueue(String tag, MapActivity mapActivity) {
         this.tag = tag;
@@ -48,14 +44,14 @@ public class RequestToQueue {
         language = Locale.getDefault().getLanguage();
     }
 
-    public void doRequest() {
+    public void doRequest(final String input) {
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, link, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
                 try {
                     switch (tag) {
                         case Constants.TAG_AUTOCOMPLETE:
-                            onResponseAutocomplete(response);
+                            onResponseAutocomplete(response, input);
                             break;
                         case Constants.TAG_CATEGORY:
                             onResponseAutocompleteCategory(response);
@@ -84,7 +80,8 @@ public class RequestToQueue {
         mapActivity.queue.add(jsonObjRequest);
     }
 
-    public void doRequest(final Shop shop, final List<Offer> offers) {
+    public void doRequest(final Shop shop) {
+        mapActivity.setLoading(true);
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, link, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
@@ -92,7 +89,8 @@ public class RequestToQueue {
                     switch (tag) {
                         case Constants.TAG_PLACES:
                             Log.i("LINK", link);
-                            onResponsePlaces(response, shop, offers);
+                            onResponsePlaces(response, shop);
+                            mapActivity.setLoading(false);
                             break;
                     }
                 } catch (JSONException e) {
@@ -115,13 +113,23 @@ public class RequestToQueue {
         mapActivity.queue.add(jsonObjRequest);
     }
 
-    private void onResponseAutocomplete(JSONObject response) throws JSONException {
+    private void onResponseAutocomplete(JSONObject response, String input) throws JSONException {
         JSONArray ja = response.getJSONArray("products");
+        boolean exists;
+        mapActivity.autoCompleteResults.add(new AutoCompleteResult("product", input, "all"));
         for (int i = 0; i < ja.length(); i++) {
+            exists = false;
             JSONObject c = ja.getJSONObject(i);
             String title = c.getString("title");
             String id = c.getString("id");
-            mapActivity.autoCompleteResults.add(new AutoCompleteResult("product", title, id));
+            for (AutoCompleteResult acR : mapActivity.autoCompleteResults) {
+                if (acR.getName().equals(title)) {
+                    exists = true;
+                }
+            }
+            if (!exists) {
+                mapActivity.autoCompleteResults.add(new AutoCompleteResult("product", title, id));
+            }
         }
         AutocompleteAdapter autocompleteAdapter = new AutocompleteAdapter(R.layout.autocomplete_item, mapActivity.autoCompleteResults, mapActivity);
         mapActivity.searchText.setAdapter(autocompleteAdapter);
@@ -133,13 +141,22 @@ public class RequestToQueue {
         if (ja.length() < 1) {
             RequestToQueue productsRequest = new RequestToQueue(Constants.TAG_AUTOCOMPLETE, mapActivity);
             productsRequest.setProductAutocompleteUrl(category);
-            productsRequest.doRequest();
+            productsRequest.doRequest(category);
         } else {
+            boolean exists;
             for (int i = 0; i < ja.length(); i++) {
+                exists = false;
                 JSONObject c = ja.getJSONObject(i);
                 String title = c.getString("title");
                 String id = c.getString("id");
-                mapActivity.autoCompleteResults.add(new AutoCompleteResult("category", title, id));
+                for (AutoCompleteResult acR : mapActivity.autoCompleteResults) {
+                    if (acR.getName().equals(title)) {
+                        exists = true;
+                    }
+                }
+                if (!exists) {
+                    mapActivity.autoCompleteResults.add(new AutoCompleteResult("category", title, id));
+                }
             }
             AutocompleteAdapter autocompleteAdapter = new AutocompleteAdapter(R.layout.autocomplete_item, mapActivity.autoCompleteResults, mapActivity);
             mapActivity.searchText.setAdapter(autocompleteAdapter);
@@ -150,39 +167,38 @@ public class RequestToQueue {
     private void onResponseResultDetails(JSONObject response) throws JSONException {
         JSONArray ja = response.getJSONArray("offers");
         String shopId = "", shopName = "", shopUrl = "", shopLogoUrl = "", offerClickUrl = "", offerCategory = "", offerTitle = "", offerProducer = "", offerPhotoId = "", offerDesc = "";
-        int offerAvailability = 4, offerPrice = 0;
-        Shop shopModel;
+        int offerAvailability = 4;
+        double offerPrice = 0;
+        Shop shopModel = null;
         Offer offerModel;
-        List<Shop> shopsList = new ArrayList<>();
-        List<Offer> offersList = new ArrayList<>();
         boolean exists;
+
         for (int i = 0; i < ja.length(); i++) {
             JSONObject offer = ja.getJSONObject(i);
             JSONObject shop = offer.getJSONObject("shop");
-
             // get offer details
-            if(offer.has("availability")){
+            if (offer.has("availability")) {
                 offerAvailability = offer.getInt("availability");
             }
-            if(offer.has("price")){
-                offerPrice = offer.getInt("price");
+            if (offer.has("price")) {
+                offerPrice = offer.getDouble("price");
             }
-            if(offer.has("title")){
+            if (offer.has("title")) {
                 offerTitle = offer.getString("title");
             }
-            if(offer.has("click_url")){
+            if (offer.has("click_url")) {
                 offerClickUrl = offer.getString("click_url");
             }
-            if(offer.has("category")){
+            if (offer.has("category")) {
                 offerCategory = offer.getString("category");
             }
-            if(offer.has("producer")){
+            if (offer.has("producer")) {
                 offerProducer = offer.getString("producer");
             }
-            if(offer.has("description_short")){
+            if (offer.has("description_short")) {
                 offerDesc = offer.getString("description_short");
             }
-            if(offer.has("photo_id")){
+            if (offer.has("photo_id")) {
                 offerPhotoId = offer.getString("photo_id");
             }
             offerModel = new Offer(offerAvailability, offerPrice, offerTitle, offerCategory, offerDesc, offerClickUrl, offerProducer, offerPhotoId);
@@ -202,41 +218,41 @@ public class RequestToQueue {
             }
             shopModel = new Shop(shopName, shopUrl, shopLogoUrl, shopId);
             exists = false;
-            for(Shop s : shopsList){
-                if(s.getName().equals(shopModel.getName())){
+            for (Shop s : mapActivity.shops) {
+                if (s.getName().equals(shopModel.getName())) {
                     exists = true;
                 }
             }
             if (!exists && !shopModel.getId().isEmpty()) {
-                shopsList.add(shopModel);
+                mapActivity.shops.add(shopModel);
+                // set shops locations
+                setShopsLocation(shopModel);
             }
 
             offerModel.setShop(shopModel);
-            offersList.add(offerModel);
-        }
-
-        // get shops locations
-        for(Shop shop : shopsList) {
-            RequestToQueue requestToQueue = new RequestToQueue(Constants.TAG_PLACES, mapActivity);
-            requestToQueue.setPlacesUrl(shop.getName());
-            requestToQueue.doRequest(shop, getOffersFromSelectedShop(offersList, shop));
+            mapActivity.offers.add(offerModel);
         }
     }
 
-    private void onResponsePlaces(JSONObject response, Shop shop, List<Offer> offers) throws JSONException {
+    private void onResponsePlaces(JSONObject response, Shop shop) throws JSONException {
         JSONArray ja = response.getJSONArray("results");
         List<LatLng> locations = new ArrayList<>();
+        List<Marker> markers = new ArrayList<>();
         for (int i = 0; i < ja.length(); i++) {
             JSONObject c = ja.getJSONObject(i);
             JSONObject locationJSON = c.getJSONObject("geometry").getJSONObject("location");
-            LatLng location = new LatLng(locationJSON.getDouble("lat"),locationJSON.getDouble("lng"));
+            LatLng location = new LatLng(locationJSON.getDouble("lat"), locationJSON.getDouble("lng"));
             locations.add(location);
-            mapActivity.mMap.addMarker(new MarkerOptions().position(location).title(shop.getName()));
+            Marker marker = mapActivity.mMap.addMarker(new MarkerOptions().position(location).title(shop.getName()));
+            markers.add(marker);
         }
         shop.setLocations(locations);
-        for(Offer o : offers){
-            o.setShop(shop);
-            mapActivity.offers.add(o);
+        shop.setMarkers(markers);
+
+        for (Offer o : mapActivity.offers) {
+            if (o.getShop().getName().equals(shop.getName())) {
+                o.setShop(shop);
+            }
         }
     }
 
@@ -282,7 +298,7 @@ public class RequestToQueue {
         setLink(urlString.toString());
     }
 
-    public void setPlacesUrl(String shopName){
+    public void setPlacesUrl(String shopName) {
         StringBuilder urlString = new StringBuilder();
         urlString.append("https://maps.googleapis.com/maps/api/place/nearbysearch/json?language=pl&location=");
         urlString.append(mapActivity.userLocation.latitude + "," + mapActivity.userLocation.longitude + "&radius=10000&key=" + Constants.WEB_API_GOOGLE_KEY + "&keyword=");
@@ -310,13 +326,39 @@ public class RequestToQueue {
         this.tag = tag;
     }
 
-    private List<Offer> getOffersFromSelectedShop(List<Offer> offers, Shop shop){
+    private List<Offer> getOffersFromSelectedShop(Shop shop) {
         List<Offer> returnOffers = new ArrayList<>();
-        for(Offer offer : offers){
-            if(offer.getShop().equals(shop)){
+        for (Offer offer : mapActivity.offers) {
+            if (offer.getShop().equals(shop)) {
                 returnOffers.add(offer);
             }
         }
         return returnOffers;
+    }
+
+    private void setShopsLocation(final Shop shop) {
+        final Handler h = new Handler();
+        final int delay = 1000;
+        final Runnable[] runnable = new Runnable[1];
+        final boolean[] already = {true};
+        h.postDelayed(new Runnable() {
+            public void run() {
+                if (mapActivity.userLocation != null) {
+                    // get shops locations
+                    if (already[0]) {
+                        already[0] = false;
+
+                        Log.i("SHOP NAME", shop.getName());
+                        RequestToQueue requestToQueue = new RequestToQueue(Constants.TAG_PLACES, mapActivity);
+                        requestToQueue.setPlacesUrl(shop.getName());
+                        requestToQueue.doRequest(shop);
+
+                        h.removeCallbacks(runnable[0]);
+                    }
+                }
+                runnable[0] = this;
+                h.postDelayed(runnable[0], delay);
+            }
+        }, delay);
     }
 }

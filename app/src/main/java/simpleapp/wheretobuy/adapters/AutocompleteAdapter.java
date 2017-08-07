@@ -51,21 +51,32 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
         Log.i("PRODUCT NAME", result.getName());
         TextView name = (TextView) convertView.findViewById(R.id.autocomplete_name);
         RelativeLayout container = (RelativeLayout) convertView.findViewById(R.id.autocomplete_product);
-
         name.setText(result.getName());
 
         container.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (result.getId().equals("all")) {
+
+                        for (AutoCompleteResult r : autocompleteProducts) {
+                            if (!r.getId().equals("all")) {
+                                RequestToQueue requestToQueue = new RequestToQueue(Constants.TAG_RESULT_DETAILS, mapActivity);
+                                requestToQueue.setResultDetailsUrl(r);
+                                requestToQueue.doRequest("");
+                            }
+
+                    }
+                } else {
+                    RequestToQueue requestToQueue = new RequestToQueue(Constants.TAG_RESULT_DETAILS, mapActivity);
+                    requestToQueue.setResultDetailsUrl(result);
+                    requestToQueue.doRequest("");
+                }
                 mapActivity.mMap.clear();
                 mapActivity.offers.clear();
-                Marker m = mapActivity.mMap.addMarker(new MarkerOptions().position(mapActivity.userLocation).title("Moja lokalizacja"));
-                m.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+                mapActivity.setUserLocationMarker();
                 mapActivity.searchText.setText(result.getName());
                 mapActivity.searchText.dismissDropDown();
-                RequestToQueue requestToQueue = new RequestToQueue(Constants.TAG_RESULT_DETAILS, mapActivity);
-                requestToQueue.setResultDetailsUrl(result);
-                requestToQueue.doRequest();
+                mapActivity.hideKeyboard();
             }
         });
 
