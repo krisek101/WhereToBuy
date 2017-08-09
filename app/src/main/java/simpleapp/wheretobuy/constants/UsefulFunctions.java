@@ -4,9 +4,12 @@ package simpleapp.wheretobuy.constants;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.location.Location;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.util.DisplayMetrics;
+
+import com.google.android.gms.maps.model.LatLng;
 
 import java.text.NumberFormat;
 import java.util.Currency;
@@ -39,5 +42,11 @@ public class UsefulFunctions {
         NumberFormat format = NumberFormat.getCurrencyInstance(Locale.getDefault());
         format.setCurrency(Currency.getInstance("PLN"));
         return format.format(price);
+    }
+
+    public static float getDistanceBetween(LatLng from, LatLng to) {
+        float[] results = new float[1];
+        Location.distanceBetween(from.latitude, from.longitude, to.latitude, to.longitude, results);
+        return results[0];
     }
 }

@@ -9,12 +9,14 @@ import android.graphics.drawable.Drawable;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import simpleapp.wheretobuy.activities.MapActivity;
+
 public class ClearableAutoCompleteTextView extends android.support.v7.widget.AppCompatAutoCompleteTextView
         implements TextWatcher {
+    private MapActivity mapActivity;
 
     public ClearableAutoCompleteTextView(Context context) {
         super(context);
@@ -31,6 +33,10 @@ public class ClearableAutoCompleteTextView extends android.support.v7.widget.App
 
     private Drawable clearButton = null;
     private Drawable loadingGif = null;
+
+    public void setActivity(MapActivity mapActivity){
+        this.mapActivity = mapActivity;
+    }
 
     public void setClearButton(final Drawable clearButton, final boolean b) {
         Bitmap bitmap = ((BitmapDrawable) clearButton).getBitmap();
@@ -55,6 +61,7 @@ public class ClearableAutoCompleteTextView extends android.support.v7.widget.App
                         - _this.clearButton.getIntrinsicWidth()) {
                     _this.setText("");
                     _this.setCompoundDrawables(null, null, null, null);
+                    mapActivity.clearResults();
                 }
                 return false;
             }

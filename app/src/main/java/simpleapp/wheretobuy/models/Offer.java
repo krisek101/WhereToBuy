@@ -4,7 +4,7 @@ import android.support.annotation.NonNull;
 
 import java.util.Comparator;
 
-public class Offer implements Comparable<Offer>{
+public class Offer implements Comparable<Offer> {
 
     private int availability;
     private double price;
@@ -103,12 +103,20 @@ public class Offer implements Comparable<Offer>{
     public int compareTo(@NonNull Offer offer) {
         if (this.getPrice() > offer.getPrice()) {
             return 1;
-        }
-        else if (this.getPrice() < offer.getPrice()) {
+        } else if (this.getPrice() < offer.getPrice()) {
             return -1;
-        }
-        else {
-            return 0;
+        } else {
+            if (this.getShop().getBestDistance() != null && offer.getShop().getBestDistance() != null) {
+                if (this.getShop().getBestDistance() > offer.getShop().getBestDistance()) {
+                    return 1;
+                } else if (this.getShop().getBestDistance() < offer.getShop().getBestDistance()) {
+                    return -1;
+                } else {
+                    return 0;
+                }
+            } else {
+                return 0;
+            }
         }
     }
 }

@@ -74,7 +74,7 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
 
                 // clear
                 mapActivity.offers.clear();
-                mapActivity.clearShopsMarkers();
+                mapActivity.clearShopMarkers();
 
                 // search field
                 mapActivity.searchText.setText(result.getName());

@@ -1,6 +1,7 @@
 package simpleapp.wheretobuy.helpers;
 
 import android.os.Handler;
+import android.text.Html;
 import android.util.Log;
 
 import com.android.volley.AuthFailureError;
@@ -27,6 +28,7 @@ import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.adapters.AutocompleteAdapter;
 import simpleapp.wheretobuy.constants.Constants;
+import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.models.AutoCompleteResult;
 import simpleapp.wheretobuy.models.Offer;
 import simpleapp.wheretobuy.models.Shop;
@@ -183,7 +185,7 @@ public class RequestHelper {
                 offerPrice = offer.getDouble("price");
             }
             if (offer.has("title")) {
-                offerTitle = offer.getString("title");
+                offerTitle = Html.fromHtml(offer.getString("title")).toString();
             }
             if (offer.has("click_url")) {
                 offerClickUrl = offer.getString("click_url");
@@ -237,6 +239,7 @@ public class RequestHelper {
         JSONArray ja = response.getJSONArray("results");
         List<LatLng> locations = new ArrayList<>();
         List<Marker> markers = new ArrayList<>();
+        List<Float> distancesFromUser = new ArrayList<>();
 
         for (int i = 0; i < ja.length(); i++) {
             JSONObject c = ja.getJSONObject(i);
@@ -245,17 +248,19 @@ public class RequestHelper {
             locations.add(location);
             Marker marker = mapActivity.mMap.addMarker(new MarkerOptions().position(location).title(shop.getName()));
             markers.add(marker);
+            distancesFromUser.add(UsefulFunctions.getDistanceBetween(location, mapActivity.userLocation));
         }
 
-        // try without ".pl" suffix
+        // if no results, try without ".pl" suffix
         if(locations.isEmpty() && shop.getName().toLowerCase().contains(".pl")){
             shop.setName(shop.getName().toLowerCase().replace(".pl", ""));
             setShopsLocation(shop);
         }
 
-        // update shops list
+        // update shop info
         shop.setLocations(locations);
         shop.setMarkers(markers);
+        shop.setDistancesFromUser(distancesFromUser);
         for (Offer o : mapActivity.offers) {
             if (o.getShop().getName().equals(shop.getName())) {
                 o.setShop(shop);
@@ -263,7 +268,11 @@ public class RequestHelper {
         }
 
         // stop loading on the last element
-        if(shop.getId().equals(mapActivity.shops.get(mapActivity.shops.size()-1).getId())){
+        if(!mapActivity.shops.isEmpty()) {
+            if (shop.getId().equals(mapActivity.shops.get(mapActivity.shops.size() - 1).getId())) {
+                mapActivity.setLoading(false);
+            }
+        }else{
             mapActivity.setLoading(false);
         }
 

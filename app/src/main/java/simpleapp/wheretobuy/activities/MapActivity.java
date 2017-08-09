@@ -30,7 +30,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -61,12 +60,9 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Currency;
 import java.util.List;
-import java.util.Locale;
 
 import pl.droidsonroids.gif.GifDrawable;
 import simpleapp.wheretobuy.R;
@@ -109,7 +105,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     // Others
     public RequestQueue queue;
-    public Offer bestOffer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,6 +122,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     private void initUI() {
         searchText = (ClearableAutoCompleteTextView) findViewById(R.id.search_text);
         searchText.setClearButton(ResourcesCompat.getDrawable(getResources(), R.drawable.clear, null), false);
+        searchText.setActivity(this);
         queue = Volley.newRequestQueue(this);
         ((FloatingActionButton) findViewById(R.id.getMyLocationButton)).setImageResource(R.drawable.ic_my_location_white_24dp);
         footer = (RelativeLayout) findViewById(R.id.footer);
@@ -163,16 +159,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 // clear
-                clearShopsMarkers();
-                shops.clear();
-                offers.clear();
-                autoCompleteResults.clear();
-                changeFooterInfo();
-
-                // cancel queue
-                if (queue != null) {
-                    queue.cancelAll(Constants.TAG_AUTOCOMPLETE);
-                }
+                clearResults();
 
                 // add default element
                 autoCompleteResults.add(new AutoCompleteResult("product", s.toString(), "all"));
@@ -189,13 +176,16 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         });
     }
 
-    public void clearShopsMarkers(){
-        for(Shop shop : shops){
-            if(shop.getMarkers() != null) {
-                for (Marker m : shop.getMarkers()) {
-                    m.remove();
-                }
-            }
+    public void clearResults(){
+        clearShopMarkers();
+        shops.clear();
+        offers.clear();
+        autoCompleteResults.clear();
+        changeFooterInfo();
+
+        // cancel queue
+        if (queue != null) {
+            queue.cancelAll(Constants.TAG_AUTOCOMPLETE);
         }
     }
 
@@ -367,6 +357,20 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     double longitude = mLastLocation.getLongitude();
                     userLocation = new LatLng(latitude, longitude);
 
+                    // change distance shops from user
+                    List<Float> distancesFromUser = new ArrayList<>();
+                    if(!shops.isEmpty()){
+                        for(Shop s : shops){
+                            distancesFromUser.clear();
+                            if(s.getLocations() != null) {
+                                for (LatLng loc : s.getLocations()) {
+                                    distancesFromUser.add(UsefulFunctions.getDistanceBetween(loc, userLocation));
+                                }
+                            }
+                            s.setDistancesFromUser(distancesFromUser);
+                        }
+                    }
+
                     // save current location
                     PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext()).edit().putString("Latitude", String.valueOf(latitude)).apply();
                     PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext()).edit().putString("Longitude", String.valueOf(longitude)).apply();
@@ -438,6 +442,18 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    @Override
+    public void onBackPressed() {
+        if (footerOpened) {
+            float toY = UsefulFunctions.getScreenHeight(this) - UsefulFunctions.getStatusBarHeight(this);
+            footerOpened = false;
+            footerSlider.animate().y(toY).setDuration(100).start();
+            footer.animate().y(toY - footer.getHeight()).setDuration(100).start();
+        }else{
+            super.onBackPressed();
+        }
+    }
+
     private void restoreData() {
         // last location
         if (!PreferenceManager.getDefaultSharedPreferences(this).getString("Latitude", "").isEmpty() && !PreferenceManager.getDefaultSharedPreferences(this).getString("Longitude", "").isEmpty()) {
@@ -451,6 +467,16 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         if (view != null) {
             InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
+    }
+
+    public void clearShopMarkers(){
+        for(Shop shop : shops){
+            if(shop.getMarkers() != null) {
+                for (Marker m : shop.getMarkers()) {
+                    m.remove();
+                }
+            }
         }
     }
 
@@ -518,15 +544,12 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             footer.setVisibility(View.GONE);
         }else {
             // logic
+            Collections.sort(offers);
+            Offer bestOffer = offers.get(0);
             int nearMe, outside = 0;
-            double bestPrice = 1000000000;
             for (Offer offer : offers) {
                 if (offer.getShop().getLocations() == null || (offer.getShop().getLocations() != null && offer.getShop().getLocations().isEmpty())) {
                     outside++;
-                }
-                if (offer.getPrice() < bestPrice && offer.getPrice() > 0) {
-                    bestPrice = offer.getPrice();
-                    bestOffer = offer;
                 }
             }
             nearMe = offers.size() - outside;
@@ -540,12 +563,13 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
             // Setters
             nearMeText.setText(String.valueOf(nearMe));
-            bestPriceText.setText("Najniższa cena: " + UsefulFunctions.getPriceFormat(bestPrice));
+            bestPriceText.setText("Najlepsza oferta: " + UsefulFunctions.getPriceFormat(bestOffer.getPrice()));
             outsideText.setText(String.valueOf(outside));
             footer.setVisibility(View.VISIBLE);
             setBestOffer(bestOffer);
 
-            // Shops adapter
+            // Shops
+            Collections.sort(shops);
             ShopsAdapter shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops);
             listView.setAdapter(shopsAdapter);
             shopsAdapter.notifyDataSetChanged();
