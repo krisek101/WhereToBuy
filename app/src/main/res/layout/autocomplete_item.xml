@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/autocomplete_product"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="46dp"
     android:clickable="true"
     android:orientation="horizontal">
 
@@ -14,15 +14,6 @@
         android:padding="5dp"
         android:maxLines="1"
         android:gravity="center_vertical"/>
-
-    <ImageView
-        android:id="@+id/autocomplete_icon"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_alignParentEnd="true"
-        android:layout_centerVertical="true"
-        android:layout_marginEnd="20dp"
-        android:visibility="gone" />
 
     <View
         android:layout_width="match_parent"

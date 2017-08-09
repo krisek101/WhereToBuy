@@ -21,4 +21,5 @@ public class Constants {
     // Constants
     public static final int SPLASH_TIME = 1000;
     public static final String UNKNOWN_ADDRESS = "Adres nieznany";
+    public static final String[] UNACCEPTABLE_SHOPS = {"mall", "sklep bielsko-biała"};
 }

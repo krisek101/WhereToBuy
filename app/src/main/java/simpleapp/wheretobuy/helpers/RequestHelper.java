@@ -1,10 +1,9 @@
-package simpleapp.wheretobuy.models;
+package simpleapp.wheretobuy.helpers;
 
 import android.os.Handler;
 import android.util.Log;
 
 import com.android.volley.AuthFailureError;
-import com.android.volley.NetworkResponse;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
@@ -28,8 +27,11 @@ import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.adapters.AutocompleteAdapter;
 import simpleapp.wheretobuy.constants.Constants;
+import simpleapp.wheretobuy.models.AutoCompleteResult;
+import simpleapp.wheretobuy.models.Offer;
+import simpleapp.wheretobuy.models.Shop;
 
-public class RequestToQueue {
+public class RequestHelper {
 
     private String link;
     private String tag;
@@ -38,7 +40,7 @@ public class RequestToQueue {
     private String language;
 
 
-    public RequestToQueue(String tag, MapActivity mapActivity) {
+    public RequestHelper(String tag, MapActivity mapActivity) {
         this.tag = tag;
         this.mapActivity = mapActivity;
         language = Locale.getDefault().getLanguage();
@@ -81,7 +83,6 @@ public class RequestToQueue {
     }
 
     public void doRequest(final Shop shop) {
-        mapActivity.setLoading(true);
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, link, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
@@ -90,7 +91,6 @@ public class RequestToQueue {
                         case Constants.TAG_PLACES:
                             Log.i("LINK", link);
                             onResponsePlaces(response, shop);
-                            mapActivity.setLoading(false);
                             break;
                     }
                 } catch (JSONException e) {
@@ -116,7 +116,6 @@ public class RequestToQueue {
     private void onResponseAutocomplete(JSONObject response, String input) throws JSONException {
         JSONArray ja = response.getJSONArray("products");
         boolean exists;
-        mapActivity.autoCompleteResults.add(new AutoCompleteResult("product", input, "all"));
         for (int i = 0; i < ja.length(); i++) {
             exists = false;
             JSONObject c = ja.getJSONObject(i);
@@ -139,7 +138,7 @@ public class RequestToQueue {
     private void onResponseAutocompleteCategory(JSONObject response) throws JSONException {
         JSONArray ja = response.getJSONArray("categories");
         if (ja.length() < 1) {
-            RequestToQueue productsRequest = new RequestToQueue(Constants.TAG_AUTOCOMPLETE, mapActivity);
+            RequestHelper productsRequest = new RequestHelper(Constants.TAG_AUTOCOMPLETE, mapActivity);
             productsRequest.setProductAutocompleteUrl(category);
             productsRequest.doRequest(category);
         } else {
@@ -238,6 +237,7 @@ public class RequestToQueue {
         JSONArray ja = response.getJSONArray("results");
         List<LatLng> locations = new ArrayList<>();
         List<Marker> markers = new ArrayList<>();
+
         for (int i = 0; i < ja.length(); i++) {
             JSONObject c = ja.getJSONObject(i);
             JSONObject locationJSON = c.getJSONObject("geometry").getJSONObject("location");
@@ -246,14 +246,29 @@ public class RequestToQueue {
             Marker marker = mapActivity.mMap.addMarker(new MarkerOptions().position(location).title(shop.getName()));
             markers.add(marker);
         }
+
+        // try without ".pl" suffix
+        if(locations.isEmpty() && shop.getName().toLowerCase().contains(".pl")){
+            shop.setName(shop.getName().toLowerCase().replace(".pl", ""));
+            setShopsLocation(shop);
+        }
+
+        // update shops list
         shop.setLocations(locations);
         shop.setMarkers(markers);
-
         for (Offer o : mapActivity.offers) {
             if (o.getShop().getName().equals(shop.getName())) {
                 o.setShop(shop);
             }
         }
+
+        // stop loading on the last element
+        if(shop.getId().equals(mapActivity.shops.get(mapActivity.shops.size()-1).getId())){
+            mapActivity.setLoading(false);
+        }
+
+        // update footer
+        mapActivity.changeFooterInfo();
     }
 
     public void setProductAutocompleteUrl(String input) {
@@ -337,28 +352,39 @@ public class RequestToQueue {
     }
 
     private void setShopsLocation(final Shop shop) {
-        final Handler h = new Handler();
-        final int delay = 1000;
-        final Runnable[] runnable = new Runnable[1];
-        final boolean[] already = {true};
-        h.postDelayed(new Runnable() {
-            public void run() {
-                if (mapActivity.userLocation != null) {
-                    // get shops locations
-                    if (already[0]) {
-                        already[0] = false;
-
-                        Log.i("SHOP NAME", shop.getName());
-                        RequestToQueue requestToQueue = new RequestToQueue(Constants.TAG_PLACES, mapActivity);
-                        requestToQueue.setPlacesUrl(shop.getName());
-                        requestToQueue.doRequest(shop);
-
-                        h.removeCallbacks(runnable[0]);
-                    }
-                }
-                runnable[0] = this;
-                h.postDelayed(runnable[0], delay);
+        // check if unacceptable shop
+        boolean unacceptable = false;
+        for(int p = 0; p < Constants.UNACCEPTABLE_SHOPS.length; p++) {
+            String element = Constants.UNACCEPTABLE_SHOPS[p];
+            if (shop.getName().toLowerCase().equals(element)) {
+                unacceptable = true;
             }
-        }, delay);
+        }
+
+        if(!unacceptable) {
+            final Handler h = new Handler();
+            final int delay = 1000;
+            final Runnable[] runnable = new Runnable[1];
+            final boolean[] already = {true};
+            h.postDelayed(new Runnable() {
+                public void run() {
+                    if (mapActivity.userLocation != null) {
+                        // get shops locations
+                        if (already[0]) {
+                            already[0] = false;
+
+                            Log.i("SHOP NAME", shop.getName());
+                            RequestHelper requestToQueue = new RequestHelper(Constants.TAG_PLACES, mapActivity);
+                            requestToQueue.setPlacesUrl(shop.getName());
+                            requestToQueue.doRequest(shop);
+
+                            h.removeCallbacks(runnable[0]);
+                        }
+                    }
+                    runnable[0] = this;
+                    h.postDelayed(runnable[0], delay);
+                }
+            }, delay);
+        }
     }
 }

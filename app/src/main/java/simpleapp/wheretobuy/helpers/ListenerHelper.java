@@ -1,21 +1,26 @@
 package simpleapp.wheretobuy.helpers;
 
 import android.content.Intent;
+import android.content.res.TypedArray;
 import android.speech.RecognizerIntent;
+import android.util.DisplayMetrics;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
+
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.constants.Constants;
+import simpleapp.wheretobuy.constants.UsefulFunctions;
 
 public class ListenerHelper {
 
     private MapActivity parentActivity;
     private GestureDetector gestureDetector;
 
-    public ListenerHelper(MapActivity parentActivity ) {
+    public ListenerHelper(MapActivity parentActivity) {
         gestureDetector = new GestureDetector(parentActivity, new SingleTapConfirm());
         this.parentActivity = parentActivity;
     }
@@ -28,13 +33,7 @@ public class ListenerHelper {
             case "touch":
                 chooseTouchListener(viewElement);
                 break;
-            case "seekBarChange":
-                chooseSeekBarChangeListener(viewElement);
-                break;
         }
-    }
-
-    private void chooseSeekBarChangeListener(View viewElement){
     }
 
     private void chooseClickListener(View viewElement) {
@@ -44,13 +43,19 @@ public class ListenerHelper {
             public void onClick(View view) {
                 switch (id) {
                     case R.id.search_mic:
-                        String language =  "pl-PL";
+                        String language = "pl-PL";
                         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-                        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,language);
+                        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, language);
                         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, language);
                         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, language);
                         intent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, language);
                         parentActivity.startActivityForResult(intent, Constants.SPEECH_REQUEST_CODE);
+                        break;
+                    case R.id.getMyLocationButton:
+                        if (parentActivity.userLocation != null) {
+                            parentActivity.mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(parentActivity.userLocation, 13));
+                        }
+                        parentActivity.checkUsersSettingGPS();
                         break;
                 }
             }
@@ -60,6 +65,71 @@ public class ListenerHelper {
     private void chooseTouchListener(final View viewElement) {
         final int id = viewElement.getId();
         switch (id) {
+            case R.id.footer:
+                viewElement.setOnTouchListener(new View.OnTouchListener() {
+                    float y;
+                    int topOffset = UsefulFunctions.getStatusBarHeight(parentActivity);
+
+                    @Override
+                    public boolean onTouch(View view, MotionEvent motionEvent) {
+                        float toY;
+                        int screenHeight = UsefulFunctions.getScreenHeight(parentActivity);
+
+                        if (gestureDetector.onTouchEvent(motionEvent)) {
+                            if (parentActivity.footerOpened) {
+                                toY = screenHeight - topOffset;
+                                parentActivity.footerOpened = false;
+                            } else {
+                                toY = parentActivity.footerTop + viewElement.getHeight();
+                                parentActivity.footerOpened = true;
+                            }
+                            parentActivity.footerSlider.animate().y(toY).setDuration(100).start();
+                            view.animate().y(toY - viewElement.getHeight()).setDuration(100).start();
+                            return false;
+                        } else {
+                            switch (motionEvent.getActionMasked()) {
+                                case MotionEvent.ACTION_DOWN:
+                                    y = motionEvent.getRawY() - view.getY() - view.getHeight();
+                                    break;
+                                case MotionEvent.ACTION_MOVE:
+                                    if (motionEvent.getRawY() - y < parentActivity.footerTop + viewElement.getHeight()) {
+                                        toY = parentActivity.footerTop + viewElement.getHeight();
+                                    } else {
+                                        toY = motionEvent.getRawY() - y;
+                                    }
+
+                                    parentActivity.footerSlider.animate().y(toY).setDuration(0).start();
+                                    view.animate().y(toY - viewElement.getHeight()).setDuration(0).start();
+                                    break;
+                                case MotionEvent.ACTION_UP:
+                                    if (parentActivity.footerOpened) {
+                                        if (motionEvent.getRawY() - y > 0.05 * parentActivity.footerSlider.getHeight()) {
+                                            toY = screenHeight - topOffset;
+                                            parentActivity.footerOpened = false;
+                                        } else {
+                                            toY = parentActivity.footerTop + viewElement.getHeight();
+                                            parentActivity.footerOpened = true;
+                                        }
+                                    } else {
+                                        if (motionEvent.getRawY() - y < 0.95 * parentActivity.footerSlider.getHeight()) {
+                                            toY = parentActivity.footerTop + viewElement.getHeight();
+                                            parentActivity.footerOpened = true;
+                                        } else {
+                                            toY = screenHeight - topOffset;
+                                            parentActivity.footerOpened = false;
+                                        }
+                                    }
+                                    parentActivity.footerSlider.animate().y(toY).setDuration(100).start();
+                                    view.animate().y(toY - viewElement.getHeight()).setDuration(100).start();
+                                    break;
+                                default:
+                                    return false;
+                            }
+                        }
+                        return true;
+                    }
+                });
+                break;
         }
     }
 

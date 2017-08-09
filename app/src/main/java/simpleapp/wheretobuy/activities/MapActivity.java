@@ -7,13 +7,16 @@ import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Build;
 import android.preference.PreferenceManager;
 import android.speech.RecognizerIntent;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -27,7 +30,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.android.volley.RequestQueue;
@@ -56,21 +61,26 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Currency;
 import java.util.List;
+import java.util.Locale;
 
 import pl.droidsonroids.gif.GifDrawable;
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.adapters.MarkerInfoWindowAdapter;
 import simpleapp.wheretobuy.adapters.OffersAdapter;
+import simpleapp.wheretobuy.adapters.ShopsAdapter;
 import simpleapp.wheretobuy.constants.ClearableAutoCompleteTextView;
 import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.helpers.ListenerHelper;
+import simpleapp.wheretobuy.helpers.PhotoHelper;
 import simpleapp.wheretobuy.models.AutoCompleteResult;
 import simpleapp.wheretobuy.models.Offer;
-import simpleapp.wheretobuy.models.RequestToQueue;
+import simpleapp.wheretobuy.helpers.RequestHelper;
 import simpleapp.wheretobuy.models.Shop;
 import simpleapp.wheretobuy.tasks.GeocoderTask;
 
@@ -87,13 +97,19 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     // UI
     public ClearableAutoCompleteTextView searchText;
+    public RelativeLayout footer;
+    public boolean footerOpened = false;
+    public RelativeLayout footerSlider;
+    public float footerTop;
 
-    // Others
-    public RequestQueue queue;
+    // Collections
     public List<AutoCompleteResult> autoCompleteResults = new ArrayList<>();
     public List<Offer> offers = new ArrayList<>();
     public List<Shop> shops = new ArrayList<>();
 
+    // Others
+    public RequestQueue queue;
+    public Offer bestOffer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,6 +128,12 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         searchText = (ClearableAutoCompleteTextView) findViewById(R.id.search_text);
         searchText.setClearButton(ResourcesCompat.getDrawable(getResources(), R.drawable.clear, null), false);
         queue = Volley.newRequestQueue(this);
+        ((FloatingActionButton) findViewById(R.id.getMyLocationButton)).setImageResource(R.drawable.ic_my_location_white_24dp);
+        footer = (RelativeLayout) findViewById(R.id.footer);
+        footerTop = footer.getY();
+        footerSlider = (RelativeLayout) findViewById(R.id.footer_content);
+        footerSlider.setY(UsefulFunctions.getScreenHeight(this) - UsefulFunctions.getStatusBarHeight(this));
+        footerSlider.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, UsefulFunctions.getScreenHeight(this) - footer.getLayoutParams().height - UsefulFunctions.getStatusBarHeight(this)));
     }
 
     public void setLoading(boolean load){
@@ -130,6 +152,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     private void setListeners() {
         ListenerHelper listenerHelper = new ListenerHelper(this);
         listenerHelper.setListener(findViewById(R.id.search_mic), "click");
+        listenerHelper.setListener(findViewById(R.id.getMyLocationButton), "click");
+        listenerHelper.setListener(footer, "touch");
         searchText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -143,14 +167,18 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 shops.clear();
                 offers.clear();
                 autoCompleteResults.clear();
+                changeFooterInfo();
 
                 // cancel queue
                 if (queue != null) {
                     queue.cancelAll(Constants.TAG_AUTOCOMPLETE);
                 }
 
+                // add default element
+                autoCompleteResults.add(new AutoCompleteResult("product", s.toString(), "all"));
+
                 // update list from Nokaut API
-                RequestToQueue categoryRequest = new RequestToQueue(Constants.TAG_CATEGORY, MapActivity.this);
+                RequestHelper categoryRequest = new RequestHelper(Constants.TAG_CATEGORY, MapActivity.this);
                 categoryRequest.setCategoryAutocompleteUrl(s.toString());
                 categoryRequest.doRequest("");
             }
@@ -161,10 +189,12 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         });
     }
 
-    private void clearShopsMarkers(){
+    public void clearShopsMarkers(){
         for(Shop shop : shops){
-            for(Marker m : shop.getMarkers()){
-                m.remove();
+            if(shop.getMarkers() != null) {
+                for (Marker m : shop.getMarkers()) {
+                    m.remove();
+                }
             }
         }
     }
@@ -215,7 +245,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         }
     }
 
-    private void checkUsersSettingGPS() {
+    public void checkUsersSettingGPS() {
         if (UsefulFunctions.isOnline(this)) {
             if (mGoogleApiClient != null) {
                 if (!mGoogleApiClient.isConnected()) {
@@ -428,14 +458,16 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public List<Offer> getOffersByLocation(LatLng position) {
         List<Offer> offersByPosition = new ArrayList<>();
         for (Offer o : offers) {
-            if (o.getShop().getLocations().contains(position)) {
-                offersByPosition.add(o);
+            if(o.getShop().getLocations() != null) {
+                if (o.getShop().getLocations().contains(position)) {
+                    offersByPosition.add(o);
+                }
             }
         }
         return offersByPosition;
     }
 
-    private void showOffersInAlertDialog(List<Offer> offersByPosition, LatLng shopLocation) {
+    public void showOffersInAlertDialog(List<Offer> offersByPosition, LatLng shopLocation) {
         // alert dialog and inflater
         final AlertDialog.Builder offersInfoWindow = new AlertDialog.Builder(this);
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -467,7 +499,11 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
         // Setters
         shopName.setText(shop.getName());
-        new GeocoderTask(this, shopLocation, shopAddress).execute();
+        if(shopLocation != null) {
+            new GeocoderTask(this, shopLocation, shopAddress).execute();
+        }else{
+            shopAddress.setVisibility(View.GONE);
+        }
         String logoUrl = "http://offers.gallery" + shop.getLogoUrl();
         Picasso.with(this).load(logoUrl).into(shopLogo);
 
@@ -475,5 +511,89 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         Collections.sort(offersByPosition);
         OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offersByPosition);
         shopOffers.setAdapter(offersAdapter);
+    }
+
+    public void changeFooterInfo(){
+        if(offers.size() == 0){
+            footer.setVisibility(View.GONE);
+        }else {
+            // logic
+            int nearMe, outside = 0;
+            double bestPrice = 1000000000;
+            for (Offer offer : offers) {
+                if (offer.getShop().getLocations() == null || (offer.getShop().getLocations() != null && offer.getShop().getLocations().isEmpty())) {
+                    outside++;
+                }
+                if (offer.getPrice() < bestPrice && offer.getPrice() > 0) {
+                    bestPrice = offer.getPrice();
+                    bestOffer = offer;
+                }
+            }
+            nearMe = offers.size() - outside;
+
+            // UI
+            TextView nearMeText = (TextView) findViewById(R.id.near_me_text);
+            TextView bestPriceText = (TextView) findViewById(R.id.best_price_text);
+            TextView outsideText = (TextView) findViewById(R.id.outside_text);
+            ListView listView = (ListView) findViewById(R.id.footer_shops);
+            bestPriceText.setTypeface(null, Typeface.BOLD);
+
+            // Setters
+            nearMeText.setText(String.valueOf(nearMe));
+            bestPriceText.setText("Najniższa cena: " + UsefulFunctions.getPriceFormat(bestPrice));
+            outsideText.setText(String.valueOf(outside));
+            footer.setVisibility(View.VISIBLE);
+            setBestOffer(bestOffer);
+
+            // Shops adapter
+            ShopsAdapter shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops);
+            listView.setAdapter(shopsAdapter);
+            shopsAdapter.notifyDataSetChanged();
+        }
+    }
+
+    private void setBestOffer(final Offer bestOffer){
+        RelativeLayout relativeLayout = (RelativeLayout) findViewById(R.id.best_offer);
+        TextView bestOfferTitle = (TextView) findViewById(R.id.best_offer_title);
+        ImageView bestOfferPhoto = (ImageView) findViewById(R.id.best_offer_photo);
+        TextView bestOfferPrice = (TextView) findViewById(R.id.best_offer_price);
+        TextView bestOfferAvailability = (TextView) findViewById(R.id.best_offer_availability);
+
+        bestOfferTitle.setText(bestOffer.getTitle());
+        bestOfferPrice.setText(UsefulFunctions.getPriceFormat(bestOffer.getPrice()));
+        PhotoHelper photoHelper = new PhotoHelper(bestOffer.getPhotoId(), bestOffer.getTitle(), "500x500");
+        String offerUrl = photoHelper.getPhotoUrl();
+        Picasso.with(this).load(offerUrl).into(bestOfferPhoto);
+        switch (bestOffer.getAvailability()){
+            case 0:
+                bestOfferAvailability.setText("Dostępny");
+                bestOfferAvailability.setTextColor(Color.GREEN);
+                break;
+            case 1:
+                bestOfferAvailability.setText("Dostępny do tygodnia");
+                bestOfferAvailability.setTextColor(Color.parseColor("#FFA3701E"));
+                break;
+            case 2:
+                bestOfferAvailability.setText("Dostępny powyżej tygodnia");
+                bestOfferAvailability.setTextColor(Color.parseColor("#FFA3701E"));
+                break;
+            case 3:
+                bestOfferAvailability.setText("Dostępny na życzenie");
+                bestOfferAvailability.setTextColor(Color.parseColor("#FFA3701E"));
+                break;
+            default:
+                bestOfferAvailability.setText("Sprawdź w sklepie");
+                bestOfferAvailability.setTextColor(Color.parseColor("#FFA3701E"));
+                break;
+        }
+
+        relativeLayout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent callIntent = new Intent(Intent.ACTION_VIEW);
+                callIntent.setData(Uri.parse("http://nokaut.click" + bestOffer.getClickUrl()));
+                startActivity(callIntent);
+            }
+        });
     }
 }
