@@ -49,4 +49,8 @@ public class UsefulFunctions {
         Location.distanceBetween(from.latitude, from.longitude, to.latitude, to.longitude, results);
         return results[0];
     }
+
+    public static int getPixelsFromDp(Context c, float sizeDp) {
+        return (int) (sizeDp * c.getResources().getDisplayMetrics().density);
+    }
 }

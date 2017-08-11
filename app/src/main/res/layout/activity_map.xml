@@ -47,11 +47,12 @@
     </RelativeLayout>
 
     <LinearLayout
+        android:id="@+id/floating_button_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginBottom="70dp"
+        android:layout_marginBottom="25dp"
         android:layout_marginEnd="25dp"
         android:orientation="horizontal">
 
@@ -67,86 +68,7 @@
             app:elevation="0dp"/>
     </LinearLayout>
 
-    <RelativeLayout
-        android:id="@+id/footer"
-        android:layout_width="match_parent"
-        android:layout_height="55dp"
-        android:layout_alignParentBottom="true"
-        android:background="@drawable/footer_rounded"
-        android:gravity="center"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
-        android:visibility="gone">
-
-        <ImageView
-            android:id="@+id/near_me"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
-            android:layout_centerVertical="true"
-            android:layout_alignParentStart="true"
-            android:src="@drawable/near_me2"/>
-
-        <TextView
-            android:id="@+id/near_me_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="14sp"
-            android:layout_toEndOf="@+id/near_me"
-            android:layout_centerVertical="true"
-            android:layout_marginStart="5dp"/>
-
-        <TextView
-            android:id="@+id/best_price_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="14sp"
-            android:layout_centerHorizontal="true"
-            android:layout_centerVertical="true"/>
-
-        <ImageView
-            android:id="@+id/outside"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
-            android:src="@drawable/outside3"
-            android:layout_centerVertical="true"
-            android:layout_toStartOf="@+id/outside_text"
-            android:layout_marginEnd="5dp"/>
-
-        <TextView
-            android:id="@+id/outside_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="14sp"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"/>
-
-    </RelativeLayout>
-
-    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        android:orientation="vertical"
-        android:id="@+id/footer_content"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#f4f4f4">
-
-        <RelativeLayout
-            android:id="@+id/best_offer_container"
-            android:layout_width="match_parent"
-            android:layout_height="100dp"
-            android:background="#a4ffcf98"
-            android:padding="5dp">
-
-            <include layout="@layout/best_offer" />
-
-        </RelativeLayout>
-
-        <ListView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:id="@+id/footer_shops"
-            android:layout_below="@+id/best_offer_container">
-        </ListView>
-
-    </RelativeLayout>
+    <include layout="@layout/footer_handler" />
+    <include layout="@layout/footer_content" />
 
 </RelativeLayout>

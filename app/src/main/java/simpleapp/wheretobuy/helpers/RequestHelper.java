@@ -118,6 +118,8 @@ public class RequestHelper {
     private void onResponseAutocomplete(JSONObject response, String input) throws JSONException {
         JSONArray ja = response.getJSONArray("products");
         boolean exists;
+        mapActivity.autoCompleteResults.add(new AutoCompleteResult("product", input, "all"));
+
         for (int i = 0; i < ja.length(); i++) {
             exists = false;
             JSONObject c = ja.getJSONObject(i);
@@ -240,31 +242,64 @@ public class RequestHelper {
         List<LatLng> locations = new ArrayList<>();
         List<Marker> markers = new ArrayList<>();
         List<Float> distancesFromUser = new ArrayList<>();
+        List<String> tempNames = new ArrayList<>();
+        String name;
 
         for (int i = 0; i < ja.length(); i++) {
             JSONObject c = ja.getJSONObject(i);
             JSONObject locationJSON = c.getJSONObject("geometry").getJSONObject("location");
             LatLng location = new LatLng(locationJSON.getDouble("lat"), locationJSON.getDouble("lng"));
-            locations.add(location);
-            Marker marker = mapActivity.mMap.addMarker(new MarkerOptions().position(location).title(shop.getName()));
-            markers.add(marker);
-            distancesFromUser.add(UsefulFunctions.getDistanceBetween(location, mapActivity.userLocation));
-        }
-
-        // if no results, try without ".pl" suffix
-        if(locations.isEmpty() && shop.getName().toLowerCase().contains(".pl")){
-            shop.setName(shop.getName().toLowerCase().replace(".pl", ""));
-            setShopsLocation(shop);
-        }
-
-        // update shop info
-        shop.setLocations(locations);
-        shop.setMarkers(markers);
-        shop.setDistancesFromUser(distancesFromUser);
-        for (Offer o : mapActivity.offers) {
-            if (o.getShop().getName().equals(shop.getName())) {
-                o.setShop(shop);
+            if(c.has("name")) {
+                name = c.getString("name");
+                if (name.toLowerCase().replaceAll("\\s+", "").contains(shop.getName().toLowerCase().replaceAll("\\s+", ""))) {
+                    tempNames.add(name);
+                    locations.add(location);
+                    Marker marker = mapActivity.mMap.addMarker(new MarkerOptions().position(location).title(shop.getName()));
+                    markers.add(marker);
+                    distancesFromUser.add(UsefulFunctions.getDistanceBetween(location, mapActivity.userLocation));
+                }
             }
+        }
+
+        if(!tempNames.isEmpty()) {
+            // if no results, try without ".pl" suffix
+            if (locations.isEmpty() && shop.getName().toLowerCase().contains(".pl")) {
+                shop.setName(shop.getName().toLowerCase().replace(".pl", ""));
+                setShopsLocation(shop);
+            }
+//        for (Offer o : mapActivity.offers) {
+//            for (LatLng l : locations) {
+//                if(o.getShop().getLocations() != null){
+//                    if(!o.getShop().getLocations().isEmpty()){
+//                        if (o.getShop().getLocations().contains(l)) {
+//                            locations.clear();
+//                            for(Marker m : markers){
+//                                m.remove();
+//                            }
+//                            markers.clear();
+//                            distancesFromUser.clear();
+//                        }
+//                    }
+//                }
+//
+//            }
+//        }
+            shop.setLocations(locations);
+            shop.setMarkers(markers);
+            shop.setDistancesFromUser(distancesFromUser);
+            for (Offer o : mapActivity.offers) {
+                if (o.getShop().getName().equals(shop.getName())) {
+                    o.setShop(shop);
+                }
+            }
+
+            // update footer
+            mapActivity.changeFooterInfo();
+        }else{
+            locations.clear();
+            distancesFromUser.clear();
+            markers.clear();
+            tempNames.clear();
         }
 
         // stop loading on the last element
@@ -275,9 +310,6 @@ public class RequestHelper {
         }else{
             mapActivity.setLoading(false);
         }
-
-        // update footer
-        mapActivity.changeFooterInfo();
     }
 
     public void setProductAutocompleteUrl(String input) {

@@ -80,9 +80,9 @@ public class Shop implements Comparable<Shop> {
 
     public void setDistancesFromUser(List<Float> distancesFromUser) {
         this.distancesFromUser = distancesFromUser;
-        this.bestDistance = 1000000f;
-        for(Float f : distancesFromUser){
-            if(f<bestDistance) f = bestDistance;
+        bestDistance = 1000000f;
+        for (Float f : distancesFromUser) {
+            if (f < bestDistance) bestDistance = f;
         }
     }
 
@@ -96,15 +96,11 @@ public class Shop implements Comparable<Shop> {
 
     @Override
     public int compareTo(@NonNull Shop shop) {
-        if (this.bestDistance != null && shop.bestDistance != null) {
-            if (this.bestDistance > shop.bestDistance) {
-                return 1;
-            } else if (this.bestDistance < shop.bestDistance) {
-                return -1;
-            } else {
-                return 0;
-            }
-        } else{
+        if (this.getBestDistance() > shop.getBestDistance()) {
+            return 1;
+        } else if (this.getBestDistance() < shop.getBestDistance()) {
+            return -1;
+        } else {
             return 0;
         }
     }

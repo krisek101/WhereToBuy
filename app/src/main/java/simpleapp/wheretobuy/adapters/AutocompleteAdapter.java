@@ -49,10 +49,6 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
         RelativeLayout container = (RelativeLayout) convertView.findViewById(R.id.autocomplete_product);
         name.setText(result.getName());
 
-        if(result.getId().equals("all")){
-            name.setTypeface(null, Typeface.BOLD);
-        }
-
         // listener
         container.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -61,15 +57,15 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
                 if (result.getId().equals("all")) {
                     for (AutoCompleteResult r : autocompleteProducts) {
                         if (!r.getId().equals("all")) {
-                            RequestHelper requestToQueue = new RequestHelper(Constants.TAG_RESULT_DETAILS, mapActivity);
-                            requestToQueue.setResultDetailsUrl(r);
-                            requestToQueue.doRequest("");
+                            mapActivity.requestHelper.setTag(Constants.TAG_RESULT_DETAILS);
+                            mapActivity.requestHelper.setResultDetailsUrl(r);
+                            mapActivity.requestHelper.doRequest("");
                         }
                     }
                 } else {
-                    RequestHelper requestToQueue = new RequestHelper(Constants.TAG_RESULT_DETAILS, mapActivity);
-                    requestToQueue.setResultDetailsUrl(result);
-                    requestToQueue.doRequest("");
+                    mapActivity.requestHelper.setTag(Constants.TAG_RESULT_DETAILS);
+                    mapActivity.requestHelper.setResultDetailsUrl(result);
+                    mapActivity.requestHelper.doRequest("");
                 }
 
                 // clear

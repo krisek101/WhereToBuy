@@ -2,36 +2,46 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:clickable="true"
     android:orientation="vertical"
-    android:paddingBottom="5dp"
-    android:paddingTop="5dp"
-    android:id="@+id/best_offer"
-    android:clickable="true">
+    android:padding="5dp">
 
     <ImageView
         android:id="@+id/photo"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_alignParentStart="true"
-        android:padding="5dp" />
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_alignParentStart="true" />
 
     <TextView
         android:id="@+id/shop_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="5dp"
-        android:textSize="16sp"
-        android:textColor="#000"
+        android:layout_marginStart="10dp"
         android:layout_toEndOf="@+id/photo"
-        android:textStyle="bold" />
+        android:textColor="#000"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textAllCaps="true"/>
+
+    <TextView
+        android:id="@+id/shop_address"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_toEndOf="@+id/photo"
+        android:layout_below="@+id/shop_name"
+        android:textColor="#000"
+        android:textSize="16sp"
+        android:text="Brak sklepu w pobliżu"
+        android:visibility="gone"/>
 
     <TextView
         android:id="@+id/price"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/shop_name"
-        android:layout_marginStart="5dp"
-        android:textColor="#000"
-        android:layout_toEndOf="@+id/photo"/>
+        android:layout_below="@+id/shop_address"
+        android:layout_marginStart="10dp"
+        android:layout_toEndOf="@+id/photo"
+        android:textColor="#000" />
 
 </RelativeLayout>

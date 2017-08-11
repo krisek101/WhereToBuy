@@ -2,6 +2,7 @@ package simpleapp.wheretobuy.helpers;
 
 import android.content.Intent;
 import android.content.res.TypedArray;
+import android.graphics.Color;
 import android.speech.RecognizerIntent;
 import android.util.DisplayMetrics;
 import android.view.GestureDetector;
@@ -79,7 +80,9 @@ public class ListenerHelper {
                             if (parentActivity.footerOpened) {
                                 toY = screenHeight - topOffset;
                                 parentActivity.footerOpened = false;
+                                viewElement.setBackground(parentActivity.getResources().getDrawable(R.drawable.footer_rounded));
                             } else {
+                                viewElement.setBackgroundColor(Color.parseColor("#f4f4f4"));
                                 toY = parentActivity.footerTop + viewElement.getHeight();
                                 parentActivity.footerOpened = true;
                             }
@@ -106,17 +109,21 @@ public class ListenerHelper {
                                         if (motionEvent.getRawY() - y > 0.05 * parentActivity.footerSlider.getHeight()) {
                                             toY = screenHeight - topOffset;
                                             parentActivity.footerOpened = false;
+                                            viewElement.setBackground(parentActivity.getResources().getDrawable(R.drawable.footer_rounded));
                                         } else {
                                             toY = parentActivity.footerTop + viewElement.getHeight();
                                             parentActivity.footerOpened = true;
+                                            viewElement.setBackgroundColor(Color.parseColor("#f4f4f4"));
                                         }
                                     } else {
                                         if (motionEvent.getRawY() - y < 0.95 * parentActivity.footerSlider.getHeight()) {
                                             toY = parentActivity.footerTop + viewElement.getHeight();
                                             parentActivity.footerOpened = true;
+                                            viewElement.setBackgroundColor(Color.parseColor("#f4f4f4"));
                                         } else {
                                             toY = screenHeight - topOffset;
                                             parentActivity.footerOpened = false;
+                                            viewElement.setBackground(parentActivity.getResources().getDrawable(R.drawable.footer_rounded));
                                         }
                                     }
                                     parentActivity.footerSlider.animate().y(toY).setDuration(100).start();

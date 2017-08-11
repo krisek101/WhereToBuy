@@ -17,11 +17,13 @@ import android.speech.RecognizerIntent;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.res.ResourcesCompat;
+import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -30,6 +32,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -68,10 +71,13 @@ import pl.droidsonroids.gif.GifDrawable;
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.adapters.MarkerInfoWindowAdapter;
 import simpleapp.wheretobuy.adapters.OffersAdapter;
+import simpleapp.wheretobuy.adapters.SectionsPageAdapter;
 import simpleapp.wheretobuy.adapters.ShopsAdapter;
 import simpleapp.wheretobuy.constants.ClearableAutoCompleteTextView;
 import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
+import simpleapp.wheretobuy.fragments.TabOffersFragment;
+import simpleapp.wheretobuy.fragments.TabShopsFragment;
 import simpleapp.wheretobuy.helpers.ListenerHelper;
 import simpleapp.wheretobuy.helpers.PhotoHelper;
 import simpleapp.wheretobuy.models.AutoCompleteResult;
@@ -105,6 +111,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     // Others
     public RequestQueue queue;
+    public RequestHelper requestHelper;
+    private SectionsPageAdapter mSectionsPageAdapter;
+    private ViewPager mViewPager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,6 +125,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         preLocation();
         initUI();
         setListeners();
+        initViewPager();
     }
 
     // initial functions
@@ -130,17 +140,34 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         footerSlider = (RelativeLayout) findViewById(R.id.footer_content);
         footerSlider.setY(UsefulFunctions.getScreenHeight(this) - UsefulFunctions.getStatusBarHeight(this));
         footerSlider.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, UsefulFunctions.getScreenHeight(this) - footer.getLayoutParams().height - UsefulFunctions.getStatusBarHeight(this)));
+
     }
 
-    public void setLoading(boolean load){
-        if(load) {
+    private void initViewPager(){
+        mSectionsPageAdapter = new SectionsPageAdapter(getSupportFragmentManager());
+        mViewPager = (ViewPager) findViewById(R.id.footer_pager);
+        setupViewPager(mViewPager);
+
+        TabLayout tabLayout = (TabLayout) findViewById(R.id.footer_pager_tabs);
+        tabLayout.setupWithViewPager(mViewPager);
+    }
+
+    private void setupViewPager(ViewPager viewPager){
+        SectionsPageAdapter sectionsPageAdapter = new SectionsPageAdapter(getSupportFragmentManager());
+        sectionsPageAdapter.addFragment(new TabOffersFragment(), "Oferty");
+        sectionsPageAdapter.addFragment(new TabShopsFragment(), "Sklepy");
+        viewPager.setAdapter(sectionsPageAdapter);
+    }
+
+    public void setLoading(boolean load) {
+        if (load) {
             try {
                 GifDrawable gifFromResource = new GifDrawable(getResources(), R.drawable.loading);
                 searchText.setLoadingGif(gifFromResource);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }else{
+        } else {
             searchText.setClearButton(ResourcesCompat.getDrawable(getResources(), R.drawable.clear, null), true);
         }
     }
@@ -150,6 +177,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         listenerHelper.setListener(findViewById(R.id.search_mic), "click");
         listenerHelper.setListener(findViewById(R.id.getMyLocationButton), "click");
         listenerHelper.setListener(footer, "touch");
+
         searchText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -161,13 +189,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 // clear
                 clearResults();
 
-                // add default element
-                autoCompleteResults.add(new AutoCompleteResult("product", s.toString(), "all"));
-
                 // update list from Nokaut API
-                RequestHelper categoryRequest = new RequestHelper(Constants.TAG_CATEGORY, MapActivity.this);
-                categoryRequest.setCategoryAutocompleteUrl(s.toString());
-                categoryRequest.doRequest("");
+                requestHelper = new RequestHelper(Constants.TAG_CATEGORY, MapActivity.this);
+                requestHelper.setCategoryAutocompleteUrl(s.toString());
+                requestHelper.doRequest("");
             }
 
             @Override
@@ -176,7 +201,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         });
     }
 
-    public void clearResults(){
+    public void clearResults() {
         clearShopMarkers();
         shops.clear();
         offers.clear();
@@ -325,7 +350,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         if (userLocationMarker != null) {
             userLocationMarker.remove();
         }
-        if(userLocation != null) {
+        if (userLocation != null) {
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 13));
             userLocationMarker = mMap.addMarker(new MarkerOptions().position(userLocation).title(getString(R.string.my_location)));
             userLocationMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
@@ -359,10 +384,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
                     // change distance shops from user
                     List<Float> distancesFromUser = new ArrayList<>();
-                    if(!shops.isEmpty()){
-                        for(Shop s : shops){
+                    if (!shops.isEmpty()) {
+                        for (Shop s : shops) {
                             distancesFromUser.clear();
-                            if(s.getLocations() != null) {
+                            if (s.getLocations() != null) {
                                 for (LatLng loc : s.getLocations()) {
                                     distancesFromUser.add(UsefulFunctions.getDistanceBetween(loc, userLocation));
                                 }
@@ -449,7 +474,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             footerOpened = false;
             footerSlider.animate().y(toY).setDuration(100).start();
             footer.animate().y(toY - footer.getHeight()).setDuration(100).start();
-        }else{
+        } else {
             super.onBackPressed();
         }
     }
@@ -462,21 +487,11 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         }
     }
 
-    public void hideKeyboard(){
+    public void hideKeyboard() {
         View view = MapActivity.this.getCurrentFocus();
         if (view != null) {
-            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-        }
-    }
-
-    public void clearShopMarkers(){
-        for(Shop shop : shops){
-            if(shop.getMarkers() != null) {
-                for (Marker m : shop.getMarkers()) {
-                    m.remove();
-                }
-            }
         }
     }
 
@@ -484,7 +499,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public List<Offer> getOffersByLocation(LatLng position) {
         List<Offer> offersByPosition = new ArrayList<>();
         for (Offer o : offers) {
-            if(o.getShop().getLocations() != null) {
+            if (o.getShop().getLocations() != null) {
                 if (o.getShop().getLocations().contains(position)) {
                     offersByPosition.add(o);
                 }
@@ -525,9 +540,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
         // Setters
         shopName.setText(shop.getName());
-        if(shopLocation != null) {
+        if (shopLocation != null) {
             new GeocoderTask(this, shopLocation, shopAddress).execute();
-        }else{
+        } else {
             shopAddress.setVisibility(View.GONE);
         }
         String logoUrl = "http://offers.gallery" + shop.getLogoUrl();
@@ -539,10 +554,13 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         shopOffers.setAdapter(offersAdapter);
     }
 
-    public void changeFooterInfo(){
-        if(offers.size() == 0){
+    public void changeFooterInfo() {
+        LinearLayout floatingButtonContainer = (LinearLayout) findViewById(R.id.floating_button_container);
+        RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) floatingButtonContainer.getLayoutParams();
+        if (offers.size() == 0) {
             footer.setVisibility(View.GONE);
-        }else {
+            lp.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 25), UsefulFunctions.getPixelsFromDp(this, 25));
+        } else {
             // logic
             Collections.sort(offers);
             Offer bestOffer = offers.get(0);
@@ -555,69 +573,66 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             nearMe = offers.size() - outside;
 
             // UI
+            lp.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 25), UsefulFunctions.getPixelsFromDp(this, 70));
             TextView nearMeText = (TextView) findViewById(R.id.near_me_text);
             TextView bestPriceText = (TextView) findViewById(R.id.best_price_text);
             TextView outsideText = (TextView) findViewById(R.id.outside_text);
-            ListView listView = (ListView) findViewById(R.id.footer_shops);
             bestPriceText.setTypeface(null, Typeface.BOLD);
+            ListView shopsListView = (ListView) findViewById(R.id.footer_shops);
+            ListView offersListView = (ListView) findViewById(R.id.footer_offers);
+
 
             // Setters
             nearMeText.setText(String.valueOf(nearMe));
             bestPriceText.setText("Najlepsza oferta: " + UsefulFunctions.getPriceFormat(bestOffer.getPrice()));
             outsideText.setText(String.valueOf(outside));
-            footer.setVisibility(View.VISIBLE);
-            setBestOffer(bestOffer);
+//            setBestOffer(bestOffer);
 
             // Shops
-            Collections.sort(shops);
+            List<Shop> shopsOnMap = new ArrayList<>();
+            List<Shop> shopsOutside = new ArrayList<>();
+
+            // Shops - order
+            for (Shop s : shops) {
+                if (s.getMarkers() != null) {
+                    if (!s.getMarkers().isEmpty()) {
+                        shopsOnMap.add(s);
+                    } else {
+                        shopsOutside.add(s);
+                    }
+                } else {
+                    shopsOutside.add(s);
+                }
+            }
+            Collections.sort(shopsOnMap);
+            shops.clear();
+            shops.addAll(shopsOnMap);
+            shops.addAll(shopsOutside);
+
+            // Shops - adapter
             ShopsAdapter shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops);
-            listView.setAdapter(shopsAdapter);
+            shopsListView.setAdapter(shopsAdapter);
             shopsAdapter.notifyDataSetChanged();
+
+            // Offers - adapter
+            OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offers);
+            offersListView.setAdapter(offersAdapter);
+            offersAdapter.notifyDataSetChanged();
+
+            // Footer Visibility
+            footer.setVisibility(View.VISIBLE);
         }
+        floatingButtonContainer.setLayoutParams(lp);
     }
 
-    private void setBestOffer(final Offer bestOffer){
-        RelativeLayout relativeLayout = (RelativeLayout) findViewById(R.id.best_offer);
-        TextView bestOfferTitle = (TextView) findViewById(R.id.best_offer_title);
-        ImageView bestOfferPhoto = (ImageView) findViewById(R.id.best_offer_photo);
-        TextView bestOfferPrice = (TextView) findViewById(R.id.best_offer_price);
-        TextView bestOfferAvailability = (TextView) findViewById(R.id.best_offer_availability);
-
-        bestOfferTitle.setText(bestOffer.getTitle());
-        bestOfferPrice.setText(UsefulFunctions.getPriceFormat(bestOffer.getPrice()));
-        PhotoHelper photoHelper = new PhotoHelper(bestOffer.getPhotoId(), bestOffer.getTitle(), "500x500");
-        String offerUrl = photoHelper.getPhotoUrl();
-        Picasso.with(this).load(offerUrl).into(bestOfferPhoto);
-        switch (bestOffer.getAvailability()){
-            case 0:
-                bestOfferAvailability.setText("Dostępny");
-                bestOfferAvailability.setTextColor(Color.GREEN);
-                break;
-            case 1:
-                bestOfferAvailability.setText("Dostępny do tygodnia");
-                bestOfferAvailability.setTextColor(Color.parseColor("#FFA3701E"));
-                break;
-            case 2:
-                bestOfferAvailability.setText("Dostępny powyżej tygodnia");
-                bestOfferAvailability.setTextColor(Color.parseColor("#FFA3701E"));
-                break;
-            case 3:
-                bestOfferAvailability.setText("Dostępny na życzenie");
-                bestOfferAvailability.setTextColor(Color.parseColor("#FFA3701E"));
-                break;
-            default:
-                bestOfferAvailability.setText("Sprawdź w sklepie");
-                bestOfferAvailability.setTextColor(Color.parseColor("#FFA3701E"));
-                break;
-        }
-
-        relativeLayout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent callIntent = new Intent(Intent.ACTION_VIEW);
-                callIntent.setData(Uri.parse("http://nokaut.click" + bestOffer.getClickUrl()));
-                startActivity(callIntent);
+    // Shops
+    public void clearShopMarkers() {
+        for (Shop shop : shops) {
+            if (shop.getMarkers() != null) {
+                for (Marker m : shop.getMarkers()) {
+                    m.remove();
+                }
             }
-        });
+        }
     }
 }

@@ -23,12 +23,6 @@ public class GeocoderTask extends AsyncTask<Void, Void, String> {
     private String tag = "";
     private TextView callbackView;
 
-    public GeocoderTask(MapActivity mapActivity, LatLng position, String tag) {
-        this.mapActivity = mapActivity;
-        this.position = position;
-        this.tag = tag;
-    }
-
     public GeocoderTask(MapActivity mapActivity, LatLng position, TextView callbackView) {
         this.mapActivity = mapActivity;
         this.position = position;
