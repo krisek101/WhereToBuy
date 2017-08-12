@@ -10,7 +10,6 @@ import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
-import android.net.Uri;
 import android.os.Build;
 import android.preference.PreferenceManager;
 import android.speech.RecognizerIntent;
@@ -77,10 +76,12 @@ import simpleapp.wheretobuy.constants.ClearableAutoCompleteTextView;
 import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.fragments.TabOffersFragment;
+import simpleapp.wheretobuy.fragments.TabOffersInfoWindowFragment;
+import simpleapp.wheretobuy.fragments.TabShopFragment;
 import simpleapp.wheretobuy.fragments.TabShopsFragment;
 import simpleapp.wheretobuy.helpers.ListenerHelper;
-import simpleapp.wheretobuy.helpers.PhotoHelper;
 import simpleapp.wheretobuy.models.AutoCompleteResult;
+import simpleapp.wheretobuy.models.CustomDialog;
 import simpleapp.wheretobuy.models.Offer;
 import simpleapp.wheretobuy.helpers.RequestHelper;
 import simpleapp.wheretobuy.models.Shop;
@@ -113,7 +114,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public RequestQueue queue;
     public RequestHelper requestHelper;
     private SectionsPageAdapter mSectionsPageAdapter;
-    private ViewPager mViewPager;
+    private ViewPager mFooterViewPager;
+    private ViewPager mInfoWindowViewPager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,7 +127,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         preLocation();
         initUI();
         setListeners();
-        initViewPager();
+        initViewPagers();
     }
 
     // initial functions
@@ -143,19 +145,26 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     }
 
-    private void initViewPager(){
-        mSectionsPageAdapter = new SectionsPageAdapter(getSupportFragmentManager());
-        mViewPager = (ViewPager) findViewById(R.id.footer_pager);
-        setupViewPager(mViewPager);
+    private void initViewPagers(){
+        //mSectionsPageAdapter = new SectionsPageAdapter(getSupportFragmentManager());
+        mFooterViewPager = (ViewPager) findViewById(R.id.footer_pager);
+        setupFooterViewPager(mFooterViewPager);
 
-        TabLayout tabLayout = (TabLayout) findViewById(R.id.footer_pager_tabs);
-        tabLayout.setupWithViewPager(mViewPager);
+        TabLayout tabFooterLayout = (TabLayout) findViewById(R.id.footer_pager_tabs);
+        tabFooterLayout.setupWithViewPager(mFooterViewPager);
     }
 
-    private void setupViewPager(ViewPager viewPager){
+    private void setupFooterViewPager(ViewPager viewPager){
         SectionsPageAdapter sectionsPageAdapter = new SectionsPageAdapter(getSupportFragmentManager());
         sectionsPageAdapter.addFragment(new TabOffersFragment(), "Oferty");
         sectionsPageAdapter.addFragment(new TabShopsFragment(), "Sklepy");
+        viewPager.setAdapter(sectionsPageAdapter);
+    }
+
+    private void setupInfoWindowViewPager(ViewPager viewPager){
+        SectionsPageAdapter sectionsPageAdapter = new SectionsPageAdapter(getSupportFragmentManager());
+        sectionsPageAdapter.addFragment(new TabOffersInfoWindowFragment(), "Oferty");
+        sectionsPageAdapter.addFragment(new TabShopFragment(), "O sklepie");
         viewPager.setAdapter(sectionsPageAdapter);
     }
 
@@ -510,48 +519,14 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     public void showOffersInAlertDialog(List<Offer> offersByPosition, LatLng shopLocation) {
         // alert dialog and inflater
-        final AlertDialog.Builder offersInfoWindow = new AlertDialog.Builder(this);
-        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        View convertView = inflater.inflate(R.layout.offers_list_window, null);
-        offersInfoWindow.setView(convertView);
-        final AlertDialog ad = offersInfoWindow.show();
-        if (ad.getWindow() != null) {
-            ad.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        }
+//        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+//        View convertView = inflater.inflate(R.layout.offers_list_window, null);
 
-        // UI
-        ImageView exit = (ImageView) convertView.findViewById(R.id.info_window_exit);
-        TextView shopName = (TextView) convertView.findViewById(R.id.shop_name);
-        TextView shopAddress = (TextView) convertView.findViewById(R.id.shop_address);
-        ListView shopOffers = (ListView) convertView.findViewById(R.id.shop_offers);
-        ImageView shopLogo = (ImageView) convertView.findViewById(R.id.shop_logo);
-        exit.setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_ATOP);
+        CustomDialog newFragment = CustomDialog.newInstance(offersByPosition, shopLocation, this);
+        newFragment.show(getSupportFragmentManager(), "dialog");
 
-        // Listeners
-        exit.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                ad.cancel();
-            }
-        });
+//         UI
 
-        // Logic
-        Shop shop = offersByPosition.get(0).getShop();
-
-        // Setters
-        shopName.setText(shop.getName());
-        if (shopLocation != null) {
-            new GeocoderTask(this, shopLocation, shopAddress).execute();
-        } else {
-            shopAddress.setVisibility(View.GONE);
-        }
-        String logoUrl = "http://offers.gallery" + shop.getLogoUrl();
-        Picasso.with(this).load(logoUrl).into(shopLogo);
-
-        // Offers list
-        Collections.sort(offersByPosition);
-        OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offersByPosition);
-        shopOffers.setAdapter(offersAdapter);
     }
 
     public void changeFooterInfo() {
@@ -610,12 +585,12 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             shops.addAll(shopsOutside);
 
             // Shops - adapter
-            ShopsAdapter shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops);
+            ShopsAdapter shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops, this);
             shopsListView.setAdapter(shopsAdapter);
             shopsAdapter.notifyDataSetChanged();
 
             // Offers - adapter
-            OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offers);
+            OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
             offersListView.setAdapter(offersAdapter);
             offersAdapter.notifyDataSetChanged();
 

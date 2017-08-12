@@ -1,0 +1,109 @@
+package simpleapp.wheretobuy.models;
+
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.os.Bundle;
+import android.support.design.widget.TabLayout;
+import android.support.v4.app.DialogFragment;
+import android.support.v4.view.ViewPager;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.TextView;
+
+import com.google.android.gms.maps.model.LatLng;
+import com.squareup.picasso.Picasso;
+
+import java.util.Collections;
+import java.util.List;
+
+import simpleapp.wheretobuy.R;
+import simpleapp.wheretobuy.activities.MapActivity;
+import simpleapp.wheretobuy.adapters.OffersAdapter;
+import simpleapp.wheretobuy.adapters.SectionsPageAdapter;
+import simpleapp.wheretobuy.fragments.TabOffersInfoWindowFragment;
+import simpleapp.wheretobuy.fragments.TabShopFragment;
+import simpleapp.wheretobuy.tasks.GeocoderTask;
+
+public class CustomDialog extends DialogFragment implements View.OnClickListener {
+
+    List<Offer> offersByPosition;
+    LatLng shopLocation;
+    MapActivity mapActivity;
+
+    public CustomDialog(){
+    }
+
+    public static CustomDialog newInstance(List<Offer> offersByPosition, LatLng shopLocation, MapActivity mapActivity){
+        CustomDialog f = new CustomDialog();
+        f.offersByPosition = offersByPosition;
+        f.shopLocation = shopLocation;
+        f.mapActivity = mapActivity;
+        return f;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // init
+        View view = inflater.inflate(R.layout.offers_list_window, container);
+        ViewPager mInfoWindowViewPager = (ViewPager) view.findViewById(R.id.info_window_pager);
+        SectionsPageAdapter adapter = new SectionsPageAdapter(getChildFragmentManager());
+        TabLayout tabInfoWindowLayout = (TabLayout) view.findViewById(R.id.info_window_pager_tabs);
+        tabInfoWindowLayout.setupWithViewPager(mInfoWindowViewPager);
+
+        // logic
+        Shop shop = offersByPosition.get(0).getShop();
+        TabShopFragment tabShopFragment = TabShopFragment.newInstance(shop);
+        TabOffersInfoWindowFragment tabOffersInfoWindowFragment = TabOffersInfoWindowFragment.newInstance(offersByPosition, mapActivity);
+        adapter.addFragment(tabOffersInfoWindowFragment, "Oferty");
+        adapter.addFragment(tabShopFragment, "O sklepie");
+        mInfoWindowViewPager.setAdapter(adapter);
+
+        // UI
+        ImageView exit = (ImageView) view.findViewById(R.id.info_window_exit);
+        TextView shopName = (TextView) view.findViewById(R.id.shop_name);
+        TextView shopAddress = (TextView) view.findViewById(R.id.shop_address);
+        ImageView shopLogo = (ImageView) view.findViewById(R.id.shop_logo);
+
+        // Setters
+        exit.setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_ATOP);
+        exit.setOnClickListener(this);
+        shopName.setText(shop.getName());
+        if (shopLocation != null) {
+            new GeocoderTask(mapActivity, shopLocation, shopAddress).execute();
+        } else {
+            shopAddress.setVisibility(View.GONE);
+        }
+        String logoUrl = "http://offers.gallery" + shop.getLogoUrl();
+        Picasso.with(mapActivity).load(logoUrl).into(shopLogo);
+
+        return view;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        Window window = getDialog().getWindow();
+        window.setBackgroundDrawableResource(android.R.color.transparent);
+    }
+
+    @Override
+    public void onClick(View view) {
+        switch (view.getId()){
+            case R.id.info_window_exit:
+                getDialog().dismiss();
+                Log.i("Dialog", "dismiss");
+                break;
+        }
+    }
+}

@@ -267,23 +267,6 @@ public class RequestHelper {
                 shop.setName(shop.getName().toLowerCase().replace(".pl", ""));
                 setShopsLocation(shop);
             }
-//        for (Offer o : mapActivity.offers) {
-//            for (LatLng l : locations) {
-//                if(o.getShop().getLocations() != null){
-//                    if(!o.getShop().getLocations().isEmpty()){
-//                        if (o.getShop().getLocations().contains(l)) {
-//                            locations.clear();
-//                            for(Marker m : markers){
-//                                m.remove();
-//                            }
-//                            markers.clear();
-//                            distancesFromUser.clear();
-//                        }
-//                    }
-//                }
-//
-//            }
-//        }
             shop.setLocations(locations);
             shop.setMarkers(markers);
             shop.setDistancesFromUser(distancesFromUser);
@@ -293,8 +276,6 @@ public class RequestHelper {
                 }
             }
 
-            // update footer
-            mapActivity.changeFooterInfo();
         }else{
             locations.clear();
             distancesFromUser.clear();
@@ -310,6 +291,9 @@ public class RequestHelper {
         }else{
             mapActivity.setLoading(false);
         }
+
+        // update footer
+        mapActivity.changeFooterInfo();
     }
 
     public void setProductAutocompleteUrl(String input) {

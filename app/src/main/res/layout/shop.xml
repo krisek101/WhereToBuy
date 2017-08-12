@@ -2,9 +2,8 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:clickable="true"
     android:orientation="vertical"
-    android:padding="5dp">
+    android:padding="10dp">
 
     <ImageView
         android:id="@+id/photo"
@@ -14,34 +13,34 @@
 
     <TextView
         android:id="@+id/shop_name"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
+        android:maxWidth="200dp"
         android:layout_toEndOf="@+id/photo"
         android:textColor="#000"
-        android:textSize="16sp"
+        android:textSize="18sp"
         android:textStyle="bold"
         android:textAllCaps="true"/>
 
     <TextView
-        android:id="@+id/shop_address"
-        android:layout_width="match_parent"
+        android:id="@+id/shop_distance"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:layout_toEndOf="@+id/photo"
-        android:layout_below="@+id/shop_name"
+        android:maxWidth="60dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentTop="true"
         android:textColor="#000"
-        android:textSize="16sp"
-        android:text="Brak sklepu w pobliżu"
-        android:visibility="gone"/>
+        android:textSize="15sp" />
 
     <TextView
         android:id="@+id/price"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/shop_address"
         android:layout_marginStart="10dp"
         android:layout_toEndOf="@+id/photo"
+        android:layout_below="@+id/shop_name"
+        android:textSize="18sp"
         android:textColor="#000" />
 
 </RelativeLayout>

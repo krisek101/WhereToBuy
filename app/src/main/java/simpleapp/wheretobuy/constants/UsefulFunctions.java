@@ -11,6 +11,8 @@ import android.util.DisplayMetrics;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Currency;
 import java.util.Locale;
@@ -42,6 +44,12 @@ public class UsefulFunctions {
         NumberFormat format = NumberFormat.getCurrencyInstance(Locale.getDefault());
         format.setCurrency(Currency.getInstance("PLN"));
         return format.format(price);
+    }
+
+    public static String getDistanceKilometersFormat(float distance){
+        DecimalFormat df = new DecimalFormat("#.##");
+        df.setRoundingMode(RoundingMode.CEILING);
+        return  df.format(distance/1000) + "km";
     }
 
     public static float getDistanceBetween(LatLng from, LatLng to) {

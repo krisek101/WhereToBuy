@@ -14,6 +14,8 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -23,7 +25,6 @@ import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.models.Offer;
 import simpleapp.wheretobuy.models.Shop;
-import simpleapp.wheretobuy.tasks.GeocoderTask;
 
 public class ShopsAdapter extends ArrayAdapter<Shop> {
 
@@ -31,33 +32,18 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
     private MapActivity mapActivity;
     private Context context;
 
-    public ShopsAdapter(@NonNull MapActivity mapActivity, @LayoutRes int resource, List<Shop> shops) {
-        super(mapActivity.getApplicationContext(), resource, shops);
+    public ShopsAdapter(@NonNull Context context, @LayoutRes int resource, List<Shop> shops, MapActivity mapActivity) {
+        super(context, resource, shops);
         this.shops = shops;
         this.mapActivity = mapActivity;
-        this.context = mapActivity.getApplicationContext();
+        this.context = context;
     }
 
     private class ViewHolder {
-        TextView address;
+        TextView distance;
         TextView shopNameText;
         TextView priceText;
         ImageView photo;
-    }
-
-    @Override
-    public int getCount() {
-        return shops.size();
-    }
-
-    @Override
-    public Shop getItem(int position) {
-        return shops.get(position);
-    }
-
-    @Override
-    public long getItemId(int position) {
-        return position;
     }
 
     @NonNull
@@ -66,9 +52,9 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
         final ViewHolder holder;
 
         if (convertView == null) {
-            convertView = LayoutInflater.from(context).inflate(R.layout.shop, parent, false);
+            convertView = LayoutInflater.from(context).inflate(R.layout.shop, null);
             holder = new ViewHolder();
-            holder.address = (TextView) convertView.findViewById(R.id.shop_address);
+            holder.distance = (TextView) convertView.findViewById(R.id.shop_distance);
             holder.shopNameText = (TextView) convertView.findViewById(R.id.shop_name);
             holder.priceText = (TextView) convertView.findViewById(R.id.price);
             holder.photo = (ImageView) convertView.findViewById(R.id.photo);
@@ -86,14 +72,12 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
         String logoUrl = "http://offers.gallery" + shop.getLogoUrl();
         Picasso.with(context).load(logoUrl).into(holder.photo);
         holder.shopNameText.setText(shop.getName());
-        holder.priceText.setText("Ceny: " + UsefulFunctions.getPriceFormat(offersFromShop.get(0).getPrice()) + " - " + UsefulFunctions.getPriceFormat(offersFromShop.get(offersFromShop.size() - 1).getPrice()));
-        if (shop.getLocations() != null) {
-            if (!shop.getLocations().isEmpty()) {
-                new GeocoderTask(mapActivity, shop.getLocations().get(0), holder.address);
-            }
-        }
-        if (shop.getBestDistance() != null) {
-            holder.address.setText(Math.round(shop.getBestDistance()) + "m");
+        holder.priceText.setText(UsefulFunctions.getPriceFormat(offersFromShop.get(0).getPrice()) + " - " + UsefulFunctions.getPriceFormat(offersFromShop.get(offersFromShop.size() - 1).getPrice()));
+        if (shop.getBestDistance() != null  && shop.getBestDistance() != 1000000f) {
+            holder.distance.setText(UsefulFunctions.getDistanceKilometersFormat(shop.getBestDistance()));
+            holder.distance.setVisibility(View.VISIBLE);
+        }else{
+            holder.distance.setVisibility(View.GONE);
         }
 
         // Listener

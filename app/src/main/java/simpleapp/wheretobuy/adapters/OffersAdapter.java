@@ -22,10 +22,13 @@ import com.squareup.picasso.Picasso;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.List;
 
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.constants.Constants;
+import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.helpers.PhotoHelper;
 import simpleapp.wheretobuy.models.Offer;
 
@@ -33,11 +36,13 @@ public class OffersAdapter extends ArrayAdapter<Offer>{
 
     private List<Offer> offers;
     private Context context;
+    private String type;
 
-    public OffersAdapter(@NonNull Context context, @LayoutRes int resource, List<Offer> offers) {
+    public OffersAdapter(@NonNull Context context, @LayoutRes int resource, List<Offer> offers, String type) {
         super(context, resource, offers);
         this.offers = offers;
         this.context = context;
+        this.type = type;
     }
 
     @NonNull
@@ -53,13 +58,14 @@ public class OffersAdapter extends ArrayAdapter<Offer>{
         TextView price = (TextView) convertView.findViewById(R.id.price);
         ImageView photo = (ImageView) convertView.findViewById(R.id.photo);
         TextView availability = (TextView) convertView.findViewById(R.id.availability);
+        TextView shopName = (TextView) convertView.findViewById(R.id.shop_name);
 
         title.setText(offer.getTitle());
-        price.setText("Cena: " + offer.getPrice() + " zł");
+        price.setText(UsefulFunctions.getPriceFormat(offer.getPrice()));
         switch (offer.getAvailability()){
             case 0:
                 availability.setText("Dostępny");
-                availability.setTextColor(Color.GREEN);
+                availability.setTextColor(Color.parseColor("#FF39762C"));
                 break;
             case 1:
                 availability.setText("Dostępny do tygodnia");
@@ -82,6 +88,18 @@ public class OffersAdapter extends ArrayAdapter<Offer>{
         PhotoHelper photoHelper = new PhotoHelper(offer.getPhotoId(), offer.getTitle(), "130x130");
         String offerUrl = photoHelper.getPhotoUrl();
         Picasso.with(context).load(offerUrl).into(photo);
+        switch(type){
+            case "offer_footer":
+                String shopString = offer.getShop().getName();
+                if(offer.getShop().getBestDistance() != null && offer.getShop().getBestDistance() != 1000000f){
+                    shopString += "(" + UsefulFunctions.getDistanceKilometersFormat(offer.getShop().getBestDistance()) + ")";
+                }
+                shopName.setText(shopString);
+                break;
+            default:
+                shopName.setVisibility(View.GONE);
+                break;
+        }
 
         convertView.setOnClickListener(new View.OnClickListener() {
             @Override
