@@ -73,10 +73,10 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
         Picasso.with(context).load(logoUrl).into(holder.photo);
         holder.shopNameText.setText(shop.getName());
         holder.priceText.setText(UsefulFunctions.getPriceFormat(offersFromShop.get(0).getPrice()) + " - " + UsefulFunctions.getPriceFormat(offersFromShop.get(offersFromShop.size() - 1).getPrice()));
-        if (shop.getBestDistance() != null  && shop.getBestDistance() != 1000000f) {
+        if (shop.getBestDistance() != -1 && shop.getBestDistance() != 1000000f) {
             holder.distance.setText(UsefulFunctions.getDistanceKilometersFormat(shop.getBestDistance()));
             holder.distance.setVisibility(View.VISIBLE);
-        }else{
+        } else {
             holder.distance.setVisibility(View.GONE);
         }
 
@@ -84,10 +84,8 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
         convertView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (shop.getLocations() != null) {
-                    if (!shop.getLocations().isEmpty()) {
-                        mapActivity.showOffersInAlertDialog(offersFromShop, shop.getLocations().get(0));
-                    }
+                if (!shop.getLocations().isEmpty()) {
+                    mapActivity.showOffersInAlertDialog(offersFromShop, shop.getLocations().get(0));
                 } else {
                     mapActivity.showOffersInAlertDialog(offersFromShop, null);
                 }

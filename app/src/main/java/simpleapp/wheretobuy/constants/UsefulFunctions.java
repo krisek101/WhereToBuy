@@ -46,16 +46,16 @@ public class UsefulFunctions {
         return format.format(price);
     }
 
-    public static String getDistanceKilometersFormat(float distance){
+    public static String getDistanceKilometersFormat(double distance){
         DecimalFormat df = new DecimalFormat("#.##");
         df.setRoundingMode(RoundingMode.CEILING);
         return  df.format(distance/1000) + "km";
     }
 
-    public static float getDistanceBetween(LatLng from, LatLng to) {
+    public static double getDistanceBetween(LatLng from, LatLng to) {
         float[] results = new float[1];
         Location.distanceBetween(from.latitude, from.longitude, to.latitude, to.longitude, results);
-        return results[0];
+        return (double) results[0];
     }
 
     public static int getPixelsFromDp(Context c, float sizeDp) {

@@ -14,6 +14,7 @@ public class Constants {
     public static final String TAG_RESULT_DETAILS = "TAG_RESULT_DETAILS";
     public static final String TAG_PLACES = "TAG_PLACES";
     public static final String TAG_TESCO_AUTOCOMPLETE = "TAG_TESCO_AUTOCOMPLETE";
+    public static final String TAG_PLACE_DETAILS = "TAG_PLACE_DETAILS";
 
     // Tokens and Keys
     public static final String NOKAUT_TOKEN = "1/c1d3e6f5f27737fe2cb0dfd5b0046743ae4297da1c446fbe1219b8db7475367c";
@@ -28,4 +29,6 @@ public class Constants {
     public static final String[] PARTNERS = {"google", "nokaut", "tesco"};
     public static final int GOOGLE_SEARCH_RADIUS = 10000;
     public static final String NEARBY_SEARCH = "NEARBY_SEARCH";
+    public static final String SORT_BY_PRICE = "SORT_BY_PRICE";
+    public static final String SORT_BY_DISTANCE = "SORT_BY_DISTANCE";
 }

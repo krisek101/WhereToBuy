@@ -19,6 +19,7 @@ import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.models.Offer;
 import simpleapp.wheretobuy.models.Shop;
+import simpleapp.wheretobuy.models.ShopLocation;
 
 public class MarkerInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
 
@@ -36,7 +37,8 @@ public class MarkerInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
 
     @Override
     public View getInfoWindow(Marker marker) {
-        List<Offer> offers = mapActivity.getOffersByLocation(marker.getPosition());
+        ShopLocation shopLocation = mapActivity.getShopLocationByPosition(marker.getPosition());
+        List<Offer> offers = mapActivity.getOffersByShopLocation(shopLocation);
         myContentsView = LayoutInflater.from(mapActivity.getApplicationContext()).inflate(R.layout.marker_info_window, null);
         TextView shopName = (TextView) myContentsView.findViewById(R.id.shop_name);
         TextView price = (TextView) myContentsView.findViewById(R.id.price);

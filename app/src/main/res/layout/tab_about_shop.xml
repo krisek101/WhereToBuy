@@ -1,29 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="5dp">
 
     <TextView
         android:id="@+id/shop_tel"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="14sp" />
+        android:clickable="true"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textSize="18sp"
+        android:background="@drawable/info_window_rounded"
+        android:padding="5dp"
+        android:drawableStart="@drawable/tel_icon"
+        android:gravity="center_vertical"
+        android:drawablePadding="5dp"
+        android:layout_margin="5dp" />
 
     <TextView
         android:id="@+id/shop_url"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="14sp" />
+        android:layout_below="@+id/shop_tel"
+        android:clickable="true"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textSize="18sp"
+        android:background="@drawable/info_window_rounded"
+        android:padding="5dp"
+        android:drawableStart="@drawable/web_icon"
+        android:drawablePadding="5dp"
+        android:layout_margin="5dp"
+        android:gravity="center_vertical" />
 
-    <TextView
+    <Spinner
         android:id="@+id/shop_hours"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="14sp" />
+        android:layout_below="@+id/shop_url"
+        android:spinnerMode="dialog"
+        android:background="@drawable/info_window_rounded"
+        android:layout_margin="5dp" />
 
-    <TextView
+    <ListView
         android:id="@+id/shop_reviews"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="14sp" />
+        android:layout_height="match_parent"
+        android:layout_below="@+id/shop_hours"
+        android:layout_margin="5dp"/>
 
 </RelativeLayout>

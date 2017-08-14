@@ -106,7 +106,7 @@ public class Offer implements Comparable<Offer> {
         } else if (this.getPrice() < offer.getPrice()) {
             return -1;
         } else {
-            if (this.getShop().getBestDistance() != null && offer.getShop().getBestDistance() != null) {
+            if (this.getShop().getBestDistance() != -1 && offer.getShop().getBestDistance() != -1) {
                 if (this.getShop().getBestDistance() > offer.getShop().getBestDistance()) {
                     return 1;
                 } else if (this.getShop().getBestDistance() < offer.getShop().getBestDistance()) {

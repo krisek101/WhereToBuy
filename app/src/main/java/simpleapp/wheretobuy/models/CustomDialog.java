@@ -32,13 +32,13 @@ import simpleapp.wheretobuy.tasks.GeocoderTask;
 public class CustomDialog extends DialogFragment implements View.OnClickListener {
 
     List<Offer> offersByPosition;
-    LatLng shopLocation;
+    ShopLocation shopLocation;
     MapActivity mapActivity;
 
     public CustomDialog(){
     }
 
-    public static CustomDialog newInstance(List<Offer> offersByPosition, LatLng shopLocation, MapActivity mapActivity){
+    public static CustomDialog newInstance(List<Offer> offersByPosition, ShopLocation shopLocation, MapActivity mapActivity){
         CustomDialog f = new CustomDialog();
         f.offersByPosition = offersByPosition;
         f.shopLocation = shopLocation;
@@ -56,17 +56,20 @@ public class CustomDialog extends DialogFragment implements View.OnClickListener
                              Bundle savedInstanceState) {
         // init
         View view = inflater.inflate(R.layout.offers_list_window, container);
+        Shop shop = offersByPosition.get(0).getShop();
+
         ViewPager mInfoWindowViewPager = (ViewPager) view.findViewById(R.id.info_window_pager);
         SectionsPageAdapter adapter = new SectionsPageAdapter(getChildFragmentManager());
+
         TabLayout tabInfoWindowLayout = (TabLayout) view.findViewById(R.id.info_window_pager_tabs);
         tabInfoWindowLayout.setupWithViewPager(mInfoWindowViewPager);
 
-        // logic
-        Shop shop = offersByPosition.get(0).getShop();
-        TabShopFragment tabShopFragment = TabShopFragment.newInstance(shop);
         TabOffersInfoWindowFragment tabOffersInfoWindowFragment = TabOffersInfoWindowFragment.newInstance(offersByPosition, mapActivity);
         adapter.addFragment(tabOffersInfoWindowFragment, "Oferty");
-        adapter.addFragment(tabShopFragment, "O sklepie");
+        if(shopLocation != null) {
+            TabShopFragment tabShopFragment = TabShopFragment.newInstance(shopLocation, mapActivity);
+            adapter.addFragment(tabShopFragment, "O sklepie");
+        }
         mInfoWindowViewPager.setAdapter(adapter);
 
         // UI
@@ -80,7 +83,7 @@ public class CustomDialog extends DialogFragment implements View.OnClickListener
         exit.setOnClickListener(this);
         shopName.setText(shop.getName());
         if (shopLocation != null) {
-            new GeocoderTask(mapActivity, shopLocation, shopAddress).execute();
+            new GeocoderTask(mapActivity, shopLocation.getLocation(), shopAddress).execute();
         } else {
             shopAddress.setVisibility(View.GONE);
         }

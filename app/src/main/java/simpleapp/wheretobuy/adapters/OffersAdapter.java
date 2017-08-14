@@ -91,7 +91,7 @@ public class OffersAdapter extends ArrayAdapter<Offer>{
         switch(type){
             case "offer_footer":
                 String shopString = offer.getShop().getName();
-                if(offer.getShop().getBestDistance() != null && offer.getShop().getBestDistance() != 1000000f){
+                if(offer.getShop().getBestDistance() != -1 && offer.getShop().getBestDistance() != 1000000f){
                     shopString += "(" + UsefulFunctions.getDistanceKilometersFormat(offer.getShop().getBestDistance()) + ")";
                 }
                 shopName.setText(shopString);

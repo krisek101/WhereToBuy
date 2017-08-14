@@ -2,22 +2,19 @@ package simpleapp.wheretobuy.models;
 
 import android.support.annotation.NonNull;
 
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
-
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class Shop implements Comparable<Shop> {
 
+    private String id;
     private String name;
     private String url;
     private String logoUrl;
-    private String id;
-    private List<LatLng> locations;
-    private List<Marker> markers;
-    private List<Float> distancesFromUser = new ArrayList<>();
-    private Float bestDistance;
+    private List<ShopLocation> locations = new ArrayList<>();
+    private double bestDistance = -1;
 
     public Shop(String name, String url, String logoUrl, String id) {
         this.name = name;
@@ -58,40 +55,30 @@ public class Shop implements Comparable<Shop> {
         this.id = id;
     }
 
-    public List<LatLng> getLocations() {
+    public List<ShopLocation> getLocations() {
         return locations;
     }
 
-    public void setLocations(List<LatLng> locations) {
+    public void setLocations(List<ShopLocation> locations) {
         this.locations = locations;
     }
 
-    public List<Marker> getMarkers() {
-        return markers;
-    }
-
-    public void setMarkers(List<Marker> markers) {
-        this.markers = markers;
-    }
-
-    public List<Float> getDistancesFromUser() {
-        return distancesFromUser;
-    }
-
-    public void setDistancesFromUser(List<Float> distancesFromUser) {
-        this.distancesFromUser = distancesFromUser;
-        bestDistance = 1000000f;
-        for (Float f : distancesFromUser) {
-            if (f < bestDistance) bestDistance = f;
-        }
-    }
-
-    public Float getBestDistance() {
+    public double getBestDistance() {
         return bestDistance;
     }
 
-    public void setBestDistance(Float bestDistance) {
+    public void setBestDistance(double bestDistance) {
         this.bestDistance = bestDistance;
+    }
+
+    public void addLocation(ShopLocation shopLocation){
+        locations.add(shopLocation);
+        updateBestDistance();
+    }
+
+    public void updateBestDistance(){
+        Collections.sort(locations);
+        bestDistance = locations.get(0).getDistanceFromUser();
     }
 
     @Override

@@ -30,6 +30,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -85,6 +86,7 @@ import simpleapp.wheretobuy.models.CustomDialog;
 import simpleapp.wheretobuy.models.Offer;
 import simpleapp.wheretobuy.helpers.RequestHelper;
 import simpleapp.wheretobuy.models.Shop;
+import simpleapp.wheretobuy.models.ShopLocation;
 import simpleapp.wheretobuy.tasks.GeocoderTask;
 
 import static simpleapp.wheretobuy.constants.Constants.SPEECH_REQUEST_CODE;
@@ -145,7 +147,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     }
 
-    private void initViewPagers(){
+    private void initViewPagers() {
         //mSectionsPageAdapter = new SectionsPageAdapter(getSupportFragmentManager());
         mFooterViewPager = (ViewPager) findViewById(R.id.footer_pager);
         setupFooterViewPager(mFooterViewPager);
@@ -154,17 +156,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         tabFooterLayout.setupWithViewPager(mFooterViewPager);
     }
 
-    private void setupFooterViewPager(ViewPager viewPager){
+    private void setupFooterViewPager(ViewPager viewPager) {
         SectionsPageAdapter sectionsPageAdapter = new SectionsPageAdapter(getSupportFragmentManager());
         sectionsPageAdapter.addFragment(new TabOffersFragment(), "Oferty");
         sectionsPageAdapter.addFragment(new TabShopsFragment(), "Sklepy");
-        viewPager.setAdapter(sectionsPageAdapter);
-    }
-
-    private void setupInfoWindowViewPager(ViewPager viewPager){
-        SectionsPageAdapter sectionsPageAdapter = new SectionsPageAdapter(getSupportFragmentManager());
-        sectionsPageAdapter.addFragment(new TabOffersInfoWindowFragment(), "Oferty");
-        sectionsPageAdapter.addFragment(new TabShopFragment(), "O sklepie");
         viewPager.setAdapter(sectionsPageAdapter);
     }
 
@@ -392,16 +387,14 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     userLocation = new LatLng(latitude, longitude);
 
                     // change distance shops from user
-                    List<Float> distancesFromUser = new ArrayList<>();
                     if (!shops.isEmpty()) {
                         for (Shop s : shops) {
-                            distancesFromUser.clear();
-                            if (s.getLocations() != null) {
-                                for (LatLng loc : s.getLocations()) {
-                                    distancesFromUser.add(UsefulFunctions.getDistanceBetween(loc, userLocation));
+                            if (!s.getLocations().isEmpty()) {
+                                for (ShopLocation shopLocation : s.getLocations()) {
+                                    shopLocation.setDistanceFromUser(UsefulFunctions.getDistanceBetween(shopLocation.getLocation(), userLocation));
                                 }
+                                s.updateBestDistance();
                             }
-                            s.setDistancesFromUser(distancesFromUser);
                         }
                     }
 
@@ -447,8 +440,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             @Override
             public void onInfoWindowClick(Marker marker) {
                 if (!marker.equals(userLocationMarker)) {
-                    List<Offer> offersByPosition = getOffersByLocation(marker.getPosition());
-                    showOffersInAlertDialog(offersByPosition, marker.getPosition());
+                    ShopLocation shopLocation = getShopLocationByPosition(marker.getPosition());
+                    List<Offer> offersByPosition = getOffersByShopLocation(shopLocation);
+                    showOffersInAlertDialog(offersByPosition, shopLocation);
                 }
             }
         });
@@ -505,11 +499,11 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     // Offers
-    public List<Offer> getOffersByLocation(LatLng position) {
+    public List<Offer> getOffersByShopLocation(ShopLocation shopLocation) {
         List<Offer> offersByPosition = new ArrayList<>();
         for (Offer o : offers) {
             if (o.getShop().getLocations() != null) {
-                if (o.getShop().getLocations().contains(position)) {
+                if (o.getShop().getLocations().contains(shopLocation)) {
                     offersByPosition.add(o);
                 }
             }
@@ -517,16 +511,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         return offersByPosition;
     }
 
-    public void showOffersInAlertDialog(List<Offer> offersByPosition, LatLng shopLocation) {
-        // alert dialog and inflater
-//        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-//        View convertView = inflater.inflate(R.layout.offers_list_window, null);
-
+    public void showOffersInAlertDialog(List<Offer> offersByPosition, ShopLocation shopLocation) {
         CustomDialog newFragment = CustomDialog.newInstance(offersByPosition, shopLocation, this);
         newFragment.show(getSupportFragmentManager(), "dialog");
-
-//         UI
-
     }
 
     public void changeFooterInfo() {
@@ -537,6 +524,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             lp.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 25), UsefulFunctions.getPixelsFromDp(this, 25));
         } else {
             // logic
+            final OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
             Collections.sort(offers);
             Offer bestOffer = offers.get(0);
             int nearMe, outside = 0;
@@ -554,14 +542,39 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             TextView outsideText = (TextView) findViewById(R.id.outside_text);
             bestPriceText.setTypeface(null, Typeface.BOLD);
             ListView shopsListView = (ListView) findViewById(R.id.footer_shops);
-            ListView offersListView = (ListView) findViewById(R.id.footer_offers);
-
+            final ListView offersListView = (ListView) findViewById(R.id.footer_offers);
+            final Button sortByPriceView = (Button) findViewById(R.id.sort_by_price);
+            final Button sortByDistanceView = (Button) findViewById(R.id.sort_by_distance);
+            final String[] sortStatus = {Constants.SORT_BY_PRICE};
+            sortByDistanceView.setVisibility(View.VISIBLE);
+            sortByPriceView.setVisibility(View.VISIBLE);
+            sortByPriceView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (sortStatus[0].equals(Constants.SORT_BY_DISTANCE)) {
+                        sortByDistanceView.setBackground(ContextCompat.getDrawable(MapActivity.this, R.drawable.info_window_rounded));
+                        view.setBackground(ContextCompat.getDrawable(MapActivity.this, R.drawable.rounded_clicked));
+                        sortStatus[0] = Constants.SORT_BY_PRICE;
+                        sortOffers(sortStatus[0], offersAdapter, offersListView);
+                    }
+                }
+            });
+            sortByDistanceView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (sortStatus[0].equals(Constants.SORT_BY_PRICE)) {
+                        sortByPriceView.setBackground(ContextCompat.getDrawable(MapActivity.this, R.drawable.info_window_rounded));
+                        view.setBackground(ContextCompat.getDrawable(MapActivity.this, R.drawable.rounded_clicked));
+                        sortStatus[0] = Constants.SORT_BY_DISTANCE;
+                        sortOffers(sortStatus[0], offersAdapter, offersListView);
+                    }
+                }
+            });
 
             // Setters
             nearMeText.setText(String.valueOf(nearMe));
             bestPriceText.setText("Najlepsza oferta: " + UsefulFunctions.getPriceFormat(bestOffer.getPrice()));
             outsideText.setText(String.valueOf(outside));
-//            setBestOffer(bestOffer);
 
             // Shops
             List<Shop> shopsOnMap = new ArrayList<>();
@@ -569,12 +582,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
             // Shops - order
             for (Shop s : shops) {
-                if (s.getMarkers() != null) {
-                    if (!s.getMarkers().isEmpty()) {
-                        shopsOnMap.add(s);
-                    } else {
-                        shopsOutside.add(s);
-                    }
+                if (s.getBestDistance() != -1) {
+                    shopsOnMap.add(s);
                 } else {
                     shopsOutside.add(s);
                 }
@@ -590,7 +599,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             shopsAdapter.notifyDataSetChanged();
 
             // Offers - adapter
-            OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
             offersListView.setAdapter(offersAdapter);
             offersAdapter.notifyDataSetChanged();
 
@@ -600,14 +608,64 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         floatingButtonContainer.setLayoutParams(lp);
     }
 
+    private void sortOffers(String sortStatus, OffersAdapter offersAdapter, ListView offersListView) {
+        switch (sortStatus) {
+            case Constants.SORT_BY_PRICE:
+                Collections.sort(offers);
+                break;
+            case Constants.SORT_BY_DISTANCE:
+                List<Offer> offersOnMap = new ArrayList<>();
+                List<Offer> offersOutside = new ArrayList<>();
+                for (Offer o : offers) {
+                    if (o.getShop().getBestDistance() == -1) {
+                        offersOutside.add(o);
+                    } else {
+                        offersOnMap.add(o);
+                    }
+                }
+                boolean war = true;
+                while(war) {
+                    war = false;
+                    for (int i = 0; i < offersOnMap.size() - 1; i++) {
+                        Offer tempOffer;
+                        if (offersOnMap.get(i).getShop().getBestDistance() > offersOnMap.get(i + 1).getShop().getBestDistance()) {
+                            tempOffer = offersOnMap.get(i);
+                            offersOnMap.set(i, offersOnMap.get(i + 1));
+                            offersOnMap.set(i + 1, tempOffer);
+                            war = true;
+                        }
+                    }
+                }
+                offers.clear();
+                offers.addAll(offersOnMap);
+                offers.addAll(offersOutside);
+                break;
+        }
+        offersListView.setAdapter(offersAdapter);
+        offersAdapter.notifyDataSetChanged();
+    }
+
     // Shops
     public void clearShopMarkers() {
         for (Shop shop : shops) {
-            if (shop.getMarkers() != null) {
-                for (Marker m : shop.getMarkers()) {
-                    m.remove();
+            if (!shop.getLocations().isEmpty()) {
+                for (ShopLocation shopLocation : shop.getLocations()) {
+                    if (shopLocation.getMarker() != null) {
+                        shopLocation.getMarker().remove();
+                    }
                 }
             }
         }
+    }
+
+    public ShopLocation getShopLocationByPosition(LatLng position) {
+        for (Shop s : shops) {
+            for (ShopLocation shopLocation : s.getLocations()) {
+                if (shopLocation.getLocation().equals(position)) {
+                    return shopLocation;
+                }
+            }
+        }
+        return null;
     }
 }
