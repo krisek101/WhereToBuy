@@ -16,6 +16,7 @@
         android:paddingStart="5dp"
         android:text="Sortuj po cenie"
         android:textSize="16sp"
+        android:textColor="#767676"
         android:visibility="gone" />
 
     <Button
@@ -29,6 +30,7 @@
         android:background="@drawable/info_window_rounded"
         android:paddingEnd="5dp"
         android:paddingStart="5dp"
+        android:textColor="#767676"
         android:text="Sortuj po odległości"
         android:textSize="16sp"
         android:visibility="gone" />

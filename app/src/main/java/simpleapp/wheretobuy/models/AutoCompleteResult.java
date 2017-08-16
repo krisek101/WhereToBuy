@@ -35,4 +35,18 @@ public class AutoCompleteResult {
     public void setId(String id) {
         this.id = id;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj.getClass().isInstance(this)) {
+            AutoCompleteResult obj2 = (AutoCompleteResult) obj;
+            if (this.getName().toLowerCase().equals(obj2.getName().toLowerCase())){
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
 }

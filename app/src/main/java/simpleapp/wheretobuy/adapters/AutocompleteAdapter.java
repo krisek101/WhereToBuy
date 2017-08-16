@@ -1,7 +1,6 @@
 package simpleapp.wheretobuy.adapters;
 
 import android.content.Context;
-import android.graphics.Typeface;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -19,7 +18,6 @@ import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.models.AutoCompleteResult;
-import simpleapp.wheretobuy.helpers.RequestHelper;
 
 public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
 
@@ -44,7 +42,7 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
         final AutoCompleteResult result = autocompleteProducts.get(position);
 
         // UI
-        Log.i("PRODUCT NAME", result.getName());
+        Log.i("RESULT NAME", result.getName());
         TextView name = (TextView) convertView.findViewById(R.id.autocomplete_name);
         RelativeLayout container = (RelativeLayout) convertView.findViewById(R.id.autocomplete_product);
         name.setText(result.getName());
@@ -54,12 +52,25 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
             @Override
             public void onClick(View view) {
                 int size = autocompleteProducts.size();
+
+                // clear
+                mapActivity.offers.clear();
+                mapActivity.shops.clear();
+                mapActivity.clearShopMarkers();
+
+                // make query
                 if (result.getId().equals("all")) {
-                    for (AutoCompleteResult r : autocompleteProducts) {
-                        if (!r.getId().equals("all")) {
-                            mapActivity.requestHelper.setTag(Constants.TAG_RESULT_DETAILS);
-                            mapActivity.requestHelper.setResultDetailsUrl(r);
-                            mapActivity.requestHelper.doRequest("");
+                    if (size == 21) {
+                        mapActivity.requestHelper.setTag(Constants.TAG_MORE_PRODUCTS);
+                        mapActivity.requestHelper.setMoreProductsUrl(result.getName(), 20);
+                        mapActivity.requestHelper.doRequest(result.getName());
+                    } else {
+                        for (AutoCompleteResult r : autocompleteProducts) {
+                            if (!r.getId().equals("all")) {
+                                mapActivity.requestHelper.setTag(Constants.TAG_RESULT_DETAILS);
+                                mapActivity.requestHelper.setResultDetailsUrl(r);
+                                mapActivity.requestHelper.doRequest("");
+                            }
                         }
                     }
                 } else {
@@ -67,10 +78,6 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
                     mapActivity.requestHelper.setResultDetailsUrl(result);
                     mapActivity.requestHelper.doRequest("");
                 }
-
-                // clear
-                mapActivity.offers.clear();
-                mapActivity.clearShopMarkers();
 
                 // search field
                 mapActivity.searchText.setText(result.getName());

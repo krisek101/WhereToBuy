@@ -5,12 +5,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.graphics.Typeface;
-import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
 import android.os.Build;
+import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.speech.RecognizerIntent;
 import android.support.annotation.NonNull;
@@ -19,19 +17,15 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
-import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v4.view.ViewPager;
-import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
@@ -60,7 +54,6 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -77,17 +70,14 @@ import simpleapp.wheretobuy.constants.ClearableAutoCompleteTextView;
 import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.fragments.TabOffersFragment;
-import simpleapp.wheretobuy.fragments.TabOffersInfoWindowFragment;
-import simpleapp.wheretobuy.fragments.TabShopFragment;
 import simpleapp.wheretobuy.fragments.TabShopsFragment;
 import simpleapp.wheretobuy.helpers.ListenerHelper;
+import simpleapp.wheretobuy.helpers.RequestHelper;
 import simpleapp.wheretobuy.models.AutoCompleteResult;
 import simpleapp.wheretobuy.models.CustomDialog;
 import simpleapp.wheretobuy.models.Offer;
-import simpleapp.wheretobuy.helpers.RequestHelper;
 import simpleapp.wheretobuy.models.Shop;
 import simpleapp.wheretobuy.models.ShopLocation;
-import simpleapp.wheretobuy.tasks.GeocoderTask;
 
 import static simpleapp.wheretobuy.constants.Constants.SPEECH_REQUEST_CODE;
 
@@ -115,9 +105,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     // Others
     public RequestQueue queue;
     public RequestHelper requestHelper;
-    private SectionsPageAdapter mSectionsPageAdapter;
-    private ViewPager mFooterViewPager;
-    private ViewPager mInfoWindowViewPager;
+    private TextView errorConnected;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -144,12 +132,11 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         footerSlider = (RelativeLayout) findViewById(R.id.footer_content);
         footerSlider.setY(UsefulFunctions.getScreenHeight(this) - UsefulFunctions.getStatusBarHeight(this));
         footerSlider.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, UsefulFunctions.getScreenHeight(this) - footer.getLayoutParams().height - UsefulFunctions.getStatusBarHeight(this)));
-
+        errorConnected = (TextView) findViewById(R.id.error_connected);
     }
 
     private void initViewPagers() {
-        //mSectionsPageAdapter = new SectionsPageAdapter(getSupportFragmentManager());
-        mFooterViewPager = (ViewPager) findViewById(R.id.footer_pager);
+        ViewPager mFooterViewPager = (ViewPager) findViewById(R.id.footer_pager);
         setupFooterViewPager(mFooterViewPager);
 
         TabLayout tabFooterLayout = (TabLayout) findViewById(R.id.footer_pager_tabs);
@@ -181,7 +168,19 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         listenerHelper.setListener(findViewById(R.id.search_mic), "click");
         listenerHelper.setListener(findViewById(R.id.getMyLocationButton), "click");
         listenerHelper.setListener(footer, "touch");
-
+        searchText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                searchText.setText("");
+                if (queue != null) {
+                    queue.cancelAll(Constants.TAG_PLACES);
+                    queue.cancelAll(Constants.TAG_MORE_PRODUCTS);
+                    queue.cancelAll(Constants.TAG_AUTOCOMPLETE_BY_CATEGORY);
+                    queue.cancelAll(Constants.TAG_RESULT_DETAILS);
+                }
+                clearResults();
+            }
+        });
         searchText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -193,10 +192,22 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 // clear
                 clearResults();
 
-                // update list from Nokaut API
-                requestHelper = new RequestHelper(Constants.TAG_CATEGORY, MapActivity.this);
-                requestHelper.setCategoryAutocompleteUrl(s.toString());
-                requestHelper.doRequest("");
+                String input = s.toString();
+                if(input.length() > 1) {
+                    if (input.charAt(s.length() - 1) == ' ') {
+                        input = input.substring(0, input.length() - 1);
+                    }
+                }
+
+                if (UsefulFunctions.isOnline(MapActivity.this)) {
+                    // update list from Nokaut API
+                    requestHelper = new RequestHelper(Constants.TAG_AUTOCOMPLETE_BY_CATEGORY, MapActivity.this);
+                    requestHelper.setAutocompleteByCategoryUrl(input);
+                    requestHelper.doRequest("");
+                    errorConnected.setVisibility(View.GONE);
+                } else {
+                    errorConnected.setVisibility(View.VISIBLE);
+                }
             }
 
             @Override
@@ -206,10 +217,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     public void clearResults() {
+        autoCompleteResults.clear();
         clearShopMarkers();
         shops.clear();
         offers.clear();
-        autoCompleteResults.clear();
         changeFooterInfo();
 
         // cancel queue
@@ -548,6 +559,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             final String[] sortStatus = {Constants.SORT_BY_PRICE};
             sortByDistanceView.setVisibility(View.VISIBLE);
             sortByPriceView.setVisibility(View.VISIBLE);
+
+            // listeners
             sortByPriceView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -599,8 +612,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             shopsAdapter.notifyDataSetChanged();
 
             // Offers - adapter
-            offersListView.setAdapter(offersAdapter);
             offersAdapter.notifyDataSetChanged();
+            offersListView.setAdapter(offersAdapter);
+            offersListView.requestLayout();
 
             // Footer Visibility
             footer.setVisibility(View.VISIBLE);
@@ -608,8 +622,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         floatingButtonContainer.setLayoutParams(lp);
     }
 
-    private void sortOffers(String sortStatus, OffersAdapter offersAdapter, ListView offersListView) {
-        switch (sortStatus) {
+    private void sortOffers(String sortType, OffersAdapter offersAdapter, ListView offersListView) {
+        switch (sortType) {
             case Constants.SORT_BY_PRICE:
                 Collections.sort(offers);
                 break;
@@ -624,7 +638,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     }
                 }
                 boolean war = true;
-                while(war) {
+                while (war) {
                     war = false;
                     for (int i = 0; i < offersOnMap.size() - 1; i++) {
                         Offer tempOffer;
