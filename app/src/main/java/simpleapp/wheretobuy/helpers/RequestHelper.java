@@ -5,8 +5,11 @@ import android.text.Html;
 import android.util.Log;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkResponse;
 import com.android.volley.Response;
+import com.android.volley.ServerError;
 import com.android.volley.VolleyError;
+import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -44,6 +47,8 @@ public class RequestHelper {
     private String language;
     private Shop shop;
     private int offset = 0;
+    private int index = 0;
+    public boolean servCon = false;
 
 
     public RequestHelper(String tag, MapActivity mapActivity) {
@@ -53,6 +58,7 @@ public class RequestHelper {
     }
 
     public void doRequest(final String input) {
+        servCon = false;
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, link, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
@@ -64,8 +70,9 @@ public class RequestHelper {
                         case Constants.TAG_AUTOCOMPLETE:
                             onResponseAutocompleteByProduct(response, input);
                             break;
-                        case Constants.TAG_RESULT_DETAILS:
-                            onResponseResultDetails(response);
+                        case Constants.TAG_OFFERS:
+                            servCon = true;
+                            onResponseOffers(response, input);
                             break;
                         case Constants.TAG_MORE_PRODUCTS:
                             onMoreProductsResponse(response, input);
@@ -78,12 +85,23 @@ public class RequestHelper {
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                NetworkResponse response = error.networkResponse;
+                if (error instanceof ServerError && response != null) {
+                    try {
+                        String res = new String(response.data, HttpHeaderParser.parseCharset(response.headers, "utf-8"));
+//                        JSONObject obj = new JSONObject(res);
+                        Log.i("ERROR", res);
+                    } catch (UnsupportedEncodingException e1) {
+                        e1.printStackTrace();
+                    }
+                }
             }
         }) {
             @Override
             public Map<String, String> getHeaders() throws AuthFailureError {
                 HashMap<String, String> headers = new HashMap<String, String>();
                 headers.put("Authorization", "Bearer " + Constants.NOKAUT_TOKEN);
+                headers.put("Content-Type", "application/json; charset=utf-8");
                 return headers;
             }
         };
@@ -92,34 +110,39 @@ public class RequestHelper {
     }
 
     public void doRequest(final Shop shop) {
-        JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, link, null, new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                try {
-                    switch (tag) {
-                        case Constants.TAG_PLACES:
-                            Log.i("LINK", link);
-                            onResponsePlaces(response, shop);
-                            break;
+        if (!mapActivity.finish) {
+            JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, link, null, new Response.Listener<JSONObject>() {
+                @Override
+                public void onResponse(JSONObject response) {
+                    try {
+                        switch (tag) {
+                            case Constants.TAG_PLACES:
+                                Log.i("LINK", link);
+                                if (!mapActivity.finish) {
+                                    onResponsePlaces(response, shop);
+                                }
+                                break;
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
-                } catch (JSONException e) {
-                    e.printStackTrace();
                 }
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-            }
-        }) {
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError {
-                HashMap<String, String> headers = new HashMap<String, String>();
-                headers.put("Authorization", "Bearer " + Constants.NOKAUT_TOKEN);
-                return headers;
-            }
-        };
-        jsonObjRequest.setTag(tag);
-        mapActivity.queue.add(jsonObjRequest);
+            }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                }
+            }) {
+                @Override
+                public Map<String, String> getHeaders() throws AuthFailureError {
+                    HashMap<String, String> headers = new HashMap<String, String>();
+                    headers.put("Authorization", "Bearer " + Constants.NOKAUT_TOKEN);
+                    headers.put("Content-Type", "application/json; charset=utf-8");
+                    return headers;
+                }
+            };
+            jsonObjRequest.setTag(tag);
+            mapActivity.queue.add(jsonObjRequest);
+        }
     }
 
     public void doRequest(final ShopLocation shopLocation) {
@@ -145,6 +168,7 @@ public class RequestHelper {
             public Map<String, String> getHeaders() throws AuthFailureError {
                 HashMap<String, String> headers = new HashMap<String, String>();
                 headers.put("Authorization", "Bearer " + Constants.NOKAUT_TOKEN);
+                headers.put("Content-Type", "application/json; charset=utf-8");
                 return headers;
             }
         };
@@ -154,43 +178,44 @@ public class RequestHelper {
 
     private void onMoreProductsResponse(JSONObject response, String input) throws JSONException {
         JSONArray ja = response.getJSONArray("products");
-        boolean exists;
+        AutoCompleteResult autoCompleteResult;
 
         for (int i = 0; i < ja.length(); i++) {
-            exists = false;
             JSONObject c = ja.getJSONObject(i);
             String title = c.getString("title");
             String id = c.getString("id");
-            for (AutoCompleteResult acR : mapActivity.autoCompleteResults) {
-                if (acR.getName().equals(title)) {
-                    exists = true;
-                }
-            }
-            if (!exists) {
-                mapActivity.autoCompleteResults.add(new AutoCompleteResult("product", title, id));
+            autoCompleteResult = new AutoCompleteResult("product", title, id);
+            if (!mapActivity.autoCompleteResults.contains(autoCompleteResult)) {
+                mapActivity.autoCompleteResults.add(autoCompleteResult);
             }
         }
 
+        // queries
         if (offset <= 300) {
-            if (ja.length() == 20) {
+            if (ja.length() >= 20) {
+                // Go for more products
                 Log.i("OFFSET", offset + "");
                 RequestHelper rq = new RequestHelper(Constants.TAG_MORE_PRODUCTS, mapActivity);
                 rq.setMoreProductsUrl(input, offset);
                 rq.doRequest(input);
             } else {
+                // No more products, get offers
+                mapActivity.requestHelper.index++;
                 for (AutoCompleteResult r : mapActivity.autoCompleteResults) {
-                    if (!r.getId().equals("all")) {
-                        mapActivity.requestHelper.setTag(Constants.TAG_RESULT_DETAILS);
-                        mapActivity.requestHelper.setResultDetailsUrl(r);
+                    if (!r.getId().equals("all") && !r.getName().equals(input)) {
+                        mapActivity.requestHelper.setTag(Constants.TAG_OFFERS);
+                        mapActivity.requestHelper.setOffersUrl(r);
                         mapActivity.requestHelper.doRequest("");
                     }
                 }
             }
         } else {
+            // Maximum quantity of products, get offers
+            mapActivity.requestHelper.index++;
             for (AutoCompleteResult r : mapActivity.autoCompleteResults) {
-                if (!r.getId().equals("all")) {
-                    mapActivity.requestHelper.setTag(Constants.TAG_RESULT_DETAILS);
-                    mapActivity.requestHelper.setResultDetailsUrl(r);
+                if (!r.getId().equals("all") && !r.getName().equals(input)) {
+                    mapActivity.requestHelper.setTag(Constants.TAG_OFFERS);
+                    mapActivity.requestHelper.setOffersUrl(r);
                     mapActivity.requestHelper.doRequest("");
                 }
             }
@@ -198,48 +223,44 @@ public class RequestHelper {
     }
 
     private void onResponsePlaceDetails(JSONObject response, ShopLocation shopLocation) throws JSONException {
-        JSONObject placeInfo = response.getJSONObject("result");
-        // empty setters
-        shopLocation.setWebsite("");
-        shopLocation.setPhoneNumber("");
-        shopLocation.setOpenHours(new ArrayList<String>());
-        shopLocation.setReviews(new JSONArray());
+        if (response.has("result")) {
+            JSONObject placeInfo = response.getJSONObject("result");
+            // empty setters
+            shopLocation.setWebsite("");
+            shopLocation.setPhoneNumber("");
+            shopLocation.setOpenHours(new ArrayList<String>());
+            shopLocation.setReviews(new JSONArray());
 
-        // real setters
-        if (!placeInfo.isNull("website")) {
-            shopLocation.setWebsite(placeInfo.getString("website"));
-        }
-        if (!placeInfo.isNull("formatted_phone_number")) {
-            shopLocation.setPhoneNumber(placeInfo.getString("formatted_phone_number"));
-        }
-        if (!placeInfo.isNull("reviews")) {
-            shopLocation.setReviews(placeInfo.getJSONArray("reviews"));
-        }
-        if (!placeInfo.isNull("opening_hours")) {
-            String openHours[] = new String[7];
-            for (int i = 0; i < 7; i++) {
-                if (!placeInfo.getJSONObject("opening_hours").getJSONArray("weekday_text").getString(i).isEmpty()) {
-                    openHours[i] = placeInfo.getJSONObject("opening_hours").getJSONArray("weekday_text").getString(i);
-                } else {
-                    openHours[i] = "null";
-                }
+            // real setters
+            if (!placeInfo.isNull("website")) {
+                shopLocation.setWebsite(placeInfo.getString("website"));
             }
-            shopLocation.setOpenHours(Arrays.asList(openHours));
+            if (!placeInfo.isNull("formatted_phone_number")) {
+                shopLocation.setPhoneNumber(placeInfo.getString("formatted_phone_number"));
+            }
+            if (!placeInfo.isNull("reviews")) {
+                shopLocation.setReviews(placeInfo.getJSONArray("reviews"));
+            }
+            if (!placeInfo.isNull("opening_hours")) {
+                String openHours[] = new String[7];
+                for (int i = 0; i < 7; i++) {
+                    if (!placeInfo.getJSONObject("opening_hours").getJSONArray("weekday_text").getString(i).isEmpty()) {
+                        openHours[i] = placeInfo.getJSONObject("opening_hours").getJSONArray("weekday_text").getString(i);
+                    } else {
+                        openHours[i] = "null";
+                    }
+                }
+                shopLocation.setOpenHours(Arrays.asList(openHours));
+            }
         }
-//        if (!placeInfo.isNull("photos")) {
-//            String photos[] = new String[placeInfo.getJSONArray("photos").length()];
-//            for (int i = 0; i < placeInfo.getJSONArray("photos").length(); i++) {
-//                photos[i] = placeInfo.getJSONArray("photos").getJSONObject(i).getString("photo_reference");
-//            }
-//            shopLocation.setPhotos(Arrays.asList(photos));
-//        }
     }
 
     private void onResponseAutocompleteByProduct(JSONObject response, String input) throws JSONException {
         JSONArray ja = response.getJSONArray("products");
 
-        if (ja.length() != 0) {
-            mapActivity.autoCompleteResults.add(new AutoCompleteResult("product", input, "all"));
+        AutoCompleteResult sample = new AutoCompleteResult("product", input, "all");
+        if (ja.length() != 0 && !mapActivity.autoCompleteResults.contains(sample)) {
+            mapActivity.autoCompleteResults.add(sample);
         }
 
         for (int i = 0; i < ja.length(); i++) {
@@ -281,7 +302,7 @@ public class RequestHelper {
         }
     }
 
-    private void onResponseResultDetails(JSONObject response) throws JSONException {
+    private void onResponseOffers(JSONObject response, String type) throws JSONException {
         if (response.has("offers")) {
             JSONArray ja = response.getJSONArray("offers");
             if (ja.length() == 0) {
@@ -289,8 +310,6 @@ public class RequestHelper {
             } else {
                 Shop shopModel;
                 Offer offerModel;
-                boolean exists;
-
                 for (int i = 0; i < ja.length(); i++) {
                     // get JSON objects
                     JSONObject offer = ja.getJSONObject(i);
@@ -300,18 +319,10 @@ public class RequestHelper {
                     offerModel = buildTempOffer(offer);
                     shopModel = buildTempShop(shop);
 
-                    // check if shop already exists
-                    exists = false;
-                    for (Shop s : mapActivity.shops) {
-                        if (s.getName().toLowerCase().equals(shopModel.getName().toLowerCase())) {
-                            exists = true;
-                        }
-                    }
-
-                    // set shop locations
-                    if (!exists && !shopModel.getId().isEmpty()) {
+                    // add shop to list, if not exists
+                    if (!mapActivity.shops.contains(shopModel) && !shopModel.getId().isEmpty()) {
                         mapActivity.shops.add(shopModel);
-                        setShopLocations(shopModel);
+
                     }
 
                     // update
@@ -322,50 +333,69 @@ public class RequestHelper {
         } else {
             mapActivity.setLoading(false);
         }
+
+        // update footer info
+        mapActivity.changeFooterInfo();
+
+        Log.i("PRODUCTS", "All:" + (mapActivity.autoCompleteResults.size() - 1) + ", CURRENT:" + (index) + " - " + mapActivity.autoCompleteResults.get(index).getName());
+        if (mapActivity.autoCompleteResults.size() - 1 == index) {
+            index = 0;
+            for (Shop shop : mapActivity.shops) {
+                // get shop locations
+                setShopLocations(shop);
+            }
+        }
+        index++;
     }
 
     private void onResponsePlaces(JSONObject response, Shop shop) throws JSONException {
         JSONArray ja = response.getJSONArray("results");
-        String name, placeId;
-        LatLng location;
-        Double rating;
-        Boolean openNow;
-        ShopLocation shopLocation;
 
-        for (int i = 0; i < ja.length(); i++) {
-            JSONObject c = ja.getJSONObject(i);
-            if (c.has("name")) {
-                name = c.getString("name");
-                if (name.toLowerCase().contains(shop.getName().toLowerCase())) {
-                    JSONObject locationJSON = c.getJSONObject("geometry").getJSONObject("location");
-                    location = new LatLng(locationJSON.getDouble("lat"), locationJSON.getDouble("lng"));
-                    placeId = c.getString("place_id");
-                    rating = c.getDouble("rating");
-                    openNow = c.getJSONObject("opening_hours").getBoolean("open_now");
+        if (ja.length() != 0) {
+            String name, placeId;
+            LatLng location;
+            Double rating;
+            Boolean openNow;
+            ShopLocation shopLocation;
 
-                    Marker marker = mapActivity.mMap.addMarker(new MarkerOptions().position(location).title(shop.getName()));
-                    shopLocation = new ShopLocation(placeId, name, location, marker, UsefulFunctions.getDistanceBetween(location, mapActivity.userLocation), rating, openNow);
-                    shop.addLocation(shopLocation);
+            for (int i = 0; i < ja.length(); i++) {
+                JSONObject c = ja.getJSONObject(i);
+                if (c.has("name")) {
+                    name = c.getString("name");
+                    if (name.toLowerCase().contains(shop.getName().toLowerCase())) {
+                        JSONObject locationJSON = c.getJSONObject("geometry").getJSONObject("location");
+                        location = new LatLng(locationJSON.getDouble("lat"), locationJSON.getDouble("lng"));
+                        placeId = c.getString("place_id");
+                        rating = c.getDouble("rating");
+                        openNow = c.getJSONObject("opening_hours").getBoolean("open_now");
+
+                        // add marker to map
+                        Marker marker = mapActivity.mMap.addMarker(new MarkerOptions().position(location).title(shop.getName()));
+                        shopLocation = new ShopLocation(placeId, name, location, marker, UsefulFunctions.getDistanceBetween(location, mapActivity.userLocation), rating, openNow);
+                        shop.addLocation(shopLocation);
+                    }
+                }
+            }
+
+            // update shop
+            for (Offer o : mapActivity.offers) {
+                if (o.getShop().getName().equals(shop.getName())) {
+                    o.setShop(shop);
                 }
             }
         }
 
-        // if no results, try without ".pl" suffix
-        if (ja.length() == 0 && shop.getName().toLowerCase().contains(".pl")) {
-            shop.setName(shop.getName().toLowerCase().replace(".pl", ""));
-            setShopLocations(shop);
-        }
-
-        // update shop
-        for (Offer o : mapActivity.offers) {
-            if (o.getShop().getName().equals(shop.getName())) {
-                o.setShop(shop);
+        List<Shop> tempShops = new ArrayList<>();
+        for (Shop s : mapActivity.shops) {
+            if (!s.getLocations().isEmpty()) {
+                tempShops.add(s);
             }
         }
 
         // stop loading on the last element
-        if (!mapActivity.shops.isEmpty()) {
-            if (shop.getId().equals(mapActivity.shops.get(mapActivity.shops.size() - 1).getId())) {
+        if (!tempShops.isEmpty()) {
+            if (shop.getId().equals(tempShops.get(tempShops.size() - 1).getId())) {
+                mapActivity.changeFooterInfo();
                 mapActivity.setLoading(false);
             }
         } else {
@@ -413,7 +443,7 @@ public class RequestHelper {
         setLink(urlString.toString());
     }
 
-    public void setResultDetailsUrl(AutoCompleteResult result) {
+    public void setOffersUrl(AutoCompleteResult result) {
         StringBuilder urlString = new StringBuilder();
         urlString.append("http://nokaut.io/api/v2");
         if (result.getType().equals("product")) {

@@ -106,6 +106,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public RequestQueue queue;
     public RequestHelper requestHelper;
     private TextView errorConnected;
+    public boolean finish = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -172,11 +173,12 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             @Override
             public void onClick(View view) {
                 searchText.setText("");
+                finish = true;
                 if (queue != null) {
                     queue.cancelAll(Constants.TAG_PLACES);
                     queue.cancelAll(Constants.TAG_MORE_PRODUCTS);
                     queue.cancelAll(Constants.TAG_AUTOCOMPLETE_BY_CATEGORY);
-                    queue.cancelAll(Constants.TAG_RESULT_DETAILS);
+                    queue.cancelAll(Constants.TAG_OFFERS);
                 }
                 clearResults();
             }
@@ -191,7 +193,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 // clear
                 clearResults();
-
+                finish = false;
                 String input = s.toString();
                 if(input.length() > 1) {
                     if (input.charAt(s.length() - 1) == ' ') {
@@ -217,9 +219,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     public void clearResults() {
-        autoCompleteResults.clear();
         clearShopMarkers();
-        shops.clear();
+        autoCompleteResults.clear();
         offers.clear();
         changeFooterInfo();
 
@@ -227,6 +228,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         if (queue != null) {
             queue.cancelAll(Constants.TAG_AUTOCOMPLETE);
         }
+        shops.clear();
     }
 
     // Permissions and settings
@@ -452,8 +454,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             public void onInfoWindowClick(Marker marker) {
                 if (!marker.equals(userLocationMarker)) {
                     ShopLocation shopLocation = getShopLocationByPosition(marker.getPosition());
-                    List<Offer> offersByPosition = getOffersByShopLocation(shopLocation);
-                    showOffersInAlertDialog(offersByPosition, shopLocation);
+                    Shop shop = getShopByShopLocation(shopLocation);
+                    List<Offer> offersByShop = getOffersByShop(shop);
+                    showOffersInAlertDialog(offersByShop, shopLocation);
                 }
             }
         });
@@ -510,18 +513,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     // Offers
-    public List<Offer> getOffersByShopLocation(ShopLocation shopLocation) {
-        List<Offer> offersByPosition = new ArrayList<>();
-        for (Offer o : offers) {
-            if (o.getShop().getLocations() != null) {
-                if (o.getShop().getLocations().contains(shopLocation)) {
-                    offersByPosition.add(o);
-                }
-            }
-        }
-        return offersByPosition;
-    }
-
     public void showOffersInAlertDialog(List<Offer> offersByPosition, ShopLocation shopLocation) {
         CustomDialog newFragment = CustomDialog.newInstance(offersByPosition, shopLocation, this);
         newFragment.show(getSupportFragmentManager(), "dialog");
@@ -535,16 +526,16 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             lp.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 25), UsefulFunctions.getPixelsFromDp(this, 25));
         } else {
             // logic
-            final OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
             Collections.sort(offers);
+            final OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
             Offer bestOffer = offers.get(0);
-            int nearMe, outside = 0;
+            int nearMe = 0, outside;
             for (Offer offer : offers) {
-                if (offer.getShop().getLocations() == null || (offer.getShop().getLocations() != null && offer.getShop().getLocations().isEmpty())) {
-                    outside++;
+                if (!offer.getShop().getLocations().isEmpty()) {
+                    nearMe++;
                 }
             }
-            nearMe = offers.size() - outside;
+            outside = offers.size() - nearMe;
 
             // UI
             lp.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 25), UsefulFunctions.getPixelsFromDp(this, 70));
@@ -681,5 +672,26 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             }
         }
         return null;
+    }
+
+    public Shop getShopByShopLocation(ShopLocation shopLocation) {
+        for(Shop s : shops){
+            for (ShopLocation sl : s.getLocations()) {
+                if (sl.equals(shopLocation)) {
+                    return s;
+                }
+            }
+        }
+        return null;
+    }
+
+    public List<Offer> getOffersByShop(Shop shop) {
+        List<Offer> offersByShop = new ArrayList<>();
+        for (Offer o : offers) {
+            if(o.getShop().equals(shop)){
+                offersByShop.add(o);
+            }
+        }
+        return offersByShop;
     }
 }

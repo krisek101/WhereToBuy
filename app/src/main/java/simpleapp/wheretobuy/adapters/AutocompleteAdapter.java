@@ -23,13 +23,13 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
 
     private MapActivity mapActivity;
     private Context context;
-    private List<AutoCompleteResult> autocompleteProducts;
+    private List<AutoCompleteResult> autoCompleteResults;
 
-    public AutocompleteAdapter(@LayoutRes int resource, List<AutoCompleteResult> autocompleteProducts, MapActivity mapActivity) {
-        super(mapActivity.getBaseContext(), resource, autocompleteProducts);
+    public AutocompleteAdapter(@LayoutRes int resource, List<AutoCompleteResult> autoCompleteResults, MapActivity mapActivity) {
+        super(mapActivity.getBaseContext(), resource, autoCompleteResults);
         this.context = mapActivity.getBaseContext();
         this.mapActivity = mapActivity;
-        this.autocompleteProducts = autocompleteProducts;
+        this.autoCompleteResults = autoCompleteResults;
     }
 
     @NonNull
@@ -39,7 +39,7 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
             convertView = LayoutInflater.from(context).inflate(R.layout.autocomplete_item, parent, false);
         }
 
-        final AutoCompleteResult result = autocompleteProducts.get(position);
+        final AutoCompleteResult result = autoCompleteResults.get(position);
 
         // UI
         Log.i("RESULT NAME", result.getName());
@@ -51,46 +51,47 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
         container.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                int size = autocompleteProducts.size();
-
                 // clear
                 mapActivity.offers.clear();
-                mapActivity.shops.clear();
                 mapActivity.clearShopMarkers();
+                mapActivity.shops.clear();
 
                 // make query
                 if (result.getId().equals("all")) {
-                    if (size == 21) {
+                    if (autoCompleteResults.size() >= 18) {
                         mapActivity.requestHelper.setTag(Constants.TAG_MORE_PRODUCTS);
                         mapActivity.requestHelper.setMoreProductsUrl(result.getName(), 20);
                         mapActivity.requestHelper.doRequest(result.getName());
                     } else {
-                        for (AutoCompleteResult r : autocompleteProducts) {
-                            if (!r.getId().equals("all")) {
-                                mapActivity.requestHelper.setTag(Constants.TAG_RESULT_DETAILS);
-                                mapActivity.requestHelper.setResultDetailsUrl(r);
-                                mapActivity.requestHelper.doRequest("");
+                        Log.i("HERE", autoCompleteResults.size() + "");
+                        for (int i = 0; i < mapActivity.autoCompleteResults.size() - 1; i++) {
+                            if (mapActivity.autoCompleteResults.get(i).getId().equals("all")) {
+                                mapActivity.autoCompleteResults.remove(i);
+                                autoCompleteResults.remove(i);
                             }
+                        }
+                        for (AutoCompleteResult r : autoCompleteResults) {
+                            mapActivity.requestHelper.setTag(Constants.TAG_OFFERS);
+                            mapActivity.requestHelper.setOffersUrl(r);
+                            mapActivity.requestHelper.doRequest("");
                         }
                     }
                 } else {
-                    mapActivity.requestHelper.setTag(Constants.TAG_RESULT_DETAILS);
-                    mapActivity.requestHelper.setResultDetailsUrl(result);
+                    AutoCompleteResult r = result;
+                    mapActivity.autoCompleteResults.clear();
+                    mapActivity.autoCompleteResults.add(r);
+                    mapActivity.requestHelper.setTag(Constants.TAG_OFFERS);
+                    mapActivity.requestHelper.setOffersUrl(result);
                     mapActivity.requestHelper.doRequest("");
                 }
 
                 // search field
-                mapActivity.searchText.setText(result.getName());
+//                mapActivity.searchText.setText(result.getName());
                 mapActivity.searchText.dismissDropDown();
                 mapActivity.hideKeyboard();
 
                 // loading start/stop
                 mapActivity.setLoading(true);
-                if (result.getId().equals("all")) {
-                    if (size == 1) {
-                        mapActivity.setLoading(false);
-                    }
-                }
             }
         });
 

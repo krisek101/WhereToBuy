@@ -4,7 +4,6 @@ import android.content.Context;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,8 +13,6 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
-import java.math.RoundingMode;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -63,7 +60,6 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
             holder = (ViewHolder) convertView.getTag();
         }
 
-        Log.i("POSITION", position + "");
         final Shop shop = shops.get(position);
         final List<Offer> offersFromShop = getOffersFromShop(shop);
         Collections.sort(offersFromShop);

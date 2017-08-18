@@ -11,7 +11,7 @@ public class Constants {
     // Tags
     public static final String TAG_AUTOCOMPLETE = "TAG_AUTOCOMPLETE";
     public static final String TAG_AUTOCOMPLETE_BY_CATEGORY = "TAG_AUTOCOMPLETE_BY_CATEGORY";
-    public static final String TAG_RESULT_DETAILS = "TAG_RESULT_DETAILS";
+    public static final String TAG_OFFERS = "TAG_OFFERS";
     public static final String TAG_PLACES = "TAG_PLACES";
     public static final String TAG_TESCO_AUTOCOMPLETE = "TAG_TESCO_AUTOCOMPLETE";
     public static final String TAG_PLACE_DETAILS = "TAG_PLACE_DETAILS";
@@ -26,7 +26,11 @@ public class Constants {
     // Constants
     public static final int SPLASH_TIME = 1000;
     public static final String UNKNOWN_ADDRESS = "Adres nieznany";
-    public static final String[] BLACK_LIST_SHOPS = {"mall", "sklep bielsko-biała", "twójlombard"};
+    public static final String[] BLACK_LIST_SHOPS = {"mall.pl", "sklep bielsko-biała", "twójlombard.pl", "Bauer Fitness", "SKLEP SPORTOWY DWS-SPORT.PL",
+            "TopSlim", "KokiskashopPL", "ATHLETIC24.PL", "electronic-star", "przydomu.pl", "Makstor", "Sklep Puregreen - najlepsze wyciskarki do soków.", "Fit and Strong - Sklep Sportowy", "vidaXL",
+            "SPORT-SHOP.PL", "EUKASA.pl", "x-tronik", "Malanet", "BESTCENA.PL", "Siglo.pl", "MegaKsiazki.pl", "Libristo.pl", "Gigant.pl", "royalpoint.pl", "niezlacena.pl", "InBook.pl", "www.cud.pl",
+            "ErgoExpert.pl", "ExitoDesign", "Multilu.eu", "softx.pl", "alget.pl", "merlin.pl", "Akumulatorki.com.pl", "Spy007.pl", "Maxczysto - Profesjonalne Środki czystości", "SHOWERWIS-Profesjonalna obsługa inwestycji",
+            "Picco.pl", "niszczarki-biurowe.pl AUTORYZOWANY SKLEP KOBRA HSM", "XXLgastro.pl", "Toyka Poland Leader Branży", "Szybkikoszyk.pl", "Balmea.pl"};
     public static final String SORT_BY_PRICE = "SORT_BY_PRICE";
     public static final String SORT_BY_DISTANCE = "SORT_BY_DISTANCE";
 }

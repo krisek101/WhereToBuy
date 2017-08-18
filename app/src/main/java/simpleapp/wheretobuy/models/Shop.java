@@ -4,7 +4,6 @@ import android.support.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class Shop implements Comparable<Shop> {
@@ -15,6 +14,10 @@ public class Shop implements Comparable<Shop> {
     private String logoUrl;
     private List<ShopLocation> locations = new ArrayList<>();
     private double bestDistance = -1;
+
+    public Shop(){
+
+    }
 
     public Shop(String name, String url, String logoUrl, String id) {
         this.name = name;
@@ -89,6 +92,20 @@ public class Shop implements Comparable<Shop> {
             return -1;
         } else {
             return 0;
+        }
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj.getClass().isInstance(this)) {
+            Shop obj2 = (Shop) obj;
+            if (this.getName().toLowerCase().equals(obj2.getName().toLowerCase())){
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
         }
     }
 }
