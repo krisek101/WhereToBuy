@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.location.Location;
 import android.os.Build;
@@ -558,6 +559,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     if (sortStatus[0].equals(Constants.SORT_BY_DISTANCE)) {
                         sortByDistanceView.setBackground(ContextCompat.getDrawable(MapActivity.this, R.drawable.info_window_rounded));
                         view.setBackground(ContextCompat.getDrawable(MapActivity.this, R.drawable.rounded_clicked));
+                        sortByPriceView.setTextColor(Color.BLACK);
+                        sortByDistanceView.setTextColor(Color.parseColor("#767676"));
                         sortStatus[0] = Constants.SORT_BY_PRICE;
                         sortOffers(sortStatus[0], offersAdapter, offersListView);
                     }
@@ -569,6 +572,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     if (sortStatus[0].equals(Constants.SORT_BY_PRICE)) {
                         sortByPriceView.setBackground(ContextCompat.getDrawable(MapActivity.this, R.drawable.info_window_rounded));
                         view.setBackground(ContextCompat.getDrawable(MapActivity.this, R.drawable.rounded_clicked));
+                        sortByDistanceView.setTextColor(Color.BLACK);
+                        sortByPriceView.setTextColor(Color.parseColor("#767676"));
                         sortStatus[0] = Constants.SORT_BY_DISTANCE;
                         sortOffers(sortStatus[0], offersAdapter, offersListView);
                     }
@@ -577,7 +582,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
             // Setters
             nearMeText.setText(String.valueOf(nearMe));
-            bestPriceText.setText("Najlepsza oferta: " + UsefulFunctions.getPriceFormat(bestOffer.getPrice()));
+            bestPriceText.setText(getString(R.string.best_offer) + UsefulFunctions.getPriceFormat(bestOffer.getPrice()) + "");
             outsideText.setText(String.valueOf(outside));
 
             // Shops

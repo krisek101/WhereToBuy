@@ -45,11 +45,8 @@ public class RequestHelper {
     private MapActivity mapActivity;
     private String category;
     private String language;
-    private Shop shop;
     private int offset = 0;
     private int index = 0;
-    public boolean servCon = false;
-
 
     public RequestHelper(String tag, MapActivity mapActivity) {
         this.tag = tag;
@@ -58,7 +55,6 @@ public class RequestHelper {
     }
 
     public void doRequest(final String input) {
-        servCon = false;
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, link, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
@@ -71,8 +67,7 @@ public class RequestHelper {
                             onResponseAutocompleteByProduct(response, input);
                             break;
                         case Constants.TAG_OFFERS:
-                            servCon = true;
-                            onResponseOffers(response, input);
+                            onResponseOffers(response);
                             break;
                         case Constants.TAG_MORE_PRODUCTS:
                             onMoreProductsResponse(response, input);
@@ -109,7 +104,7 @@ public class RequestHelper {
         mapActivity.queue.add(jsonObjRequest);
     }
 
-    public void doRequest(final Shop shop) {
+    private void doRequest(final Shop shop) {
         if (!mapActivity.finish) {
             JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, link, null, new Response.Listener<JSONObject>() {
                 @Override
@@ -117,7 +112,7 @@ public class RequestHelper {
                     try {
                         switch (tag) {
                             case Constants.TAG_PLACES:
-                                Log.i("LINK", link);
+                                //Log.i("LINK", link);
                                 if (!mapActivity.finish) {
                                     onResponsePlaces(response, shop);
                                 }
@@ -302,7 +297,7 @@ public class RequestHelper {
         }
     }
 
-    private void onResponseOffers(JSONObject response, String type) throws JSONException {
+    private void onResponseOffers(JSONObject response) throws JSONException {
         if (response.has("offers")) {
             JSONArray ja = response.getJSONArray("offers");
             if (ja.length() == 0) {
@@ -406,7 +401,7 @@ public class RequestHelper {
         mapActivity.changeFooterInfo();
     }
 
-    public void setProductAutocompleteUrl(String input) {
+    private void setProductAutocompleteUrl(String input) {
         StringBuilder urlString = new StringBuilder();
         urlString.append("http://nokaut.io/api/v2/products?phrase=");
         try {
@@ -461,7 +456,7 @@ public class RequestHelper {
         setLink(urlString.toString());
     }
 
-    public void setPlacesUrl(String shopName) {
+    private void setPlacesUrl(String shopName) {
         StringBuilder urlString = new StringBuilder();
         urlString.append("https://maps.googleapis.com/maps/api/place/nearbysearch/json?language=pl&location=");
         urlString.append(mapActivity.userLocation.latitude + "," + mapActivity.userLocation.longitude + "&radius=10000&types=store&key=" + Constants.WEB_API_GOOGLE_KEY + "&keyword=");
@@ -481,7 +476,7 @@ public class RequestHelper {
         return link;
     }
 
-    public void setLink(String link) {
+    private void setLink(String link) {
         this.link = link;
     }
 
@@ -493,17 +488,6 @@ public class RequestHelper {
         this.tag = tag;
     }
 
-
-    // others
-    private List<Offer> getOffersFromSelectedShop(Shop shop) {
-        List<Offer> returnOffers = new ArrayList<>();
-        for (Offer offer : mapActivity.offers) {
-            if (offer.getShop().equals(shop)) {
-                returnOffers.add(offer);
-            }
-        }
-        return returnOffers;
-    }
 
     private void setShopLocations(final Shop shop) {
         // check if unacceptable shop
@@ -527,7 +511,7 @@ public class RequestHelper {
                         if (already[0]) {
                             already[0] = false;
 
-                            Log.i("SHOP NAME", shop.getName());
+                            //Log.i("SHOP NAME", shop.getName());
                             RequestHelper requestToQueue = new RequestHelper(Constants.TAG_PLACES, mapActivity);
                             requestToQueue.setPlacesUrl(shop.getName());
                             requestToQueue.doRequest(shop);

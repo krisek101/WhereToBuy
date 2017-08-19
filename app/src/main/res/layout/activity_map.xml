@@ -31,7 +31,8 @@
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:layout_marginEnd="10dp"
-            android:src="@drawable/mic_icon" />
+            android:src="@drawable/mic_icon"
+            android:contentDescription="@string/mic" />
 
         <simpleapp.wheretobuy.constants.ClearableAutoCompleteTextView
             android:id="@+id/search_text"
@@ -58,7 +59,7 @@
         android:layout_marginStart="5dp"
         android:gravity="center"
         android:textSize="16sp"
-        android:text="Brak połączenia z Internetem"
+        android:text="@string/no_internet_conn"
         android:background="@drawable/rounded_edittext"
         android:textColor="#9e3305"
         android:visibility="gone" />

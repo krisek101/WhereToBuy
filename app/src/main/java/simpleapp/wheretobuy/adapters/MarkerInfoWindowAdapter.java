@@ -18,7 +18,6 @@ import simpleapp.wheretobuy.models.ShopLocation;
 
 public class MarkerInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
 
-    private View myContentsView;
     private MapActivity mapActivity;
 
     public MarkerInfoWindowAdapter(MapActivity mapActivity) {
@@ -33,12 +32,12 @@ public class MarkerInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
     @Override
     public View getInfoWindow(Marker marker) {
         // UI
-        myContentsView = LayoutInflater.from(mapActivity.getApplicationContext()).inflate(R.layout.marker_info_window, null);
-        TextView shopName = (TextView) myContentsView.findViewById(R.id.shop_name);
+        View myContentsView = LayoutInflater.from(mapActivity.getApplicationContext()).inflate(R.layout.marker_info_window, null);
+        TextView shopName = (TextView) myContentsView.findViewById(R.id.distance);
         TextView price = (TextView) myContentsView.findViewById(R.id.price);
 
         if (marker.getPosition().equals(mapActivity.userLocation)) {
-            shopName.setText("Moja lokalizacja");
+            shopName.setText(mapActivity.getString(R.string.my_location));
             price.setVisibility(View.GONE);
         } else {
             ShopLocation shopLocation = mapActivity.getShopLocationByPosition(marker.getPosition());
@@ -50,13 +49,13 @@ public class MarkerInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
                 double minPrice = 10000000, maxPrice = 0;
 
                 if (offers.size() == 1) {
-                    price.setText("Cena: " + UsefulFunctions.getPriceFormat(sampleOffer.getPrice()));
+                    price.setText(UsefulFunctions.getPriceFormat(sampleOffer.getPrice()));
                 } else {
                     for (Offer offer : offers) {
                         if (offer.getPrice() > maxPrice) maxPrice = offer.getPrice();
                         if (offer.getPrice() < minPrice) minPrice = offer.getPrice();
                     }
-                    price.setText("Ceny: " + UsefulFunctions.getPriceFormat(minPrice) + " - " + UsefulFunctions.getPriceFormat(maxPrice));
+                    price.setText(UsefulFunctions.getPriceFormat(minPrice) + " - " + UsefulFunctions.getPriceFormat(maxPrice));
                 }
                 shopName.setText(shop.getName());
             }

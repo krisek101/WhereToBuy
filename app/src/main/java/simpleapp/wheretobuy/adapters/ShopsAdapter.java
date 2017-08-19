@@ -52,7 +52,7 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
             convertView = LayoutInflater.from(context).inflate(R.layout.shop, null);
             holder = new ViewHolder();
             holder.distance = (TextView) convertView.findViewById(R.id.shop_distance);
-            holder.shopNameText = (TextView) convertView.findViewById(R.id.shop_name);
+            holder.shopNameText = (TextView) convertView.findViewById(R.id.distance);
             holder.priceText = (TextView) convertView.findViewById(R.id.price);
             holder.photo = (ImageView) convertView.findViewById(R.id.photo);
             convertView.setTag(holder);

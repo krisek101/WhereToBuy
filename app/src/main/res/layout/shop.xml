@@ -9,17 +9,20 @@
         android:id="@+id/photo"
         android:layout_width="70dp"
         android:layout_height="70dp"
-        android:layout_alignParentStart="true" />
+        android:layout_alignParentStart="true"
+        android:contentDescription="@string/shop_image" />
 
     <TextView
-        android:id="@+id/shop_name"
+        android:id="@+id/distance"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
         android:maxWidth="200dp"
         android:layout_toEndOf="@+id/photo"
+        android:ellipsize="end"
+        android:maxLines="1"
         android:textColor="#000"
-        android:textSize="18sp"
+        android:textSize="17sp"
         android:textStyle="bold"
         android:textAllCaps="true"/>
 
@@ -27,7 +30,7 @@
         android:id="@+id/shop_distance"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:maxWidth="60dp"
+        android:maxWidth="70dp"
         android:layout_alignParentEnd="true"
         android:layout_alignParentTop="true"
         android:textColor="#000"
@@ -39,8 +42,10 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
         android:layout_toEndOf="@+id/photo"
-        android:layout_below="@+id/shop_name"
-        android:textSize="18sp"
+        android:layout_below="@+id/distance"
+        android:textSize="16sp"
+        android:ellipsize="end"
+        android:maxLines="1"
         android:textColor="#000" />
 
 </RelativeLayout>

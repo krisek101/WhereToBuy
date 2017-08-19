@@ -1,5 +1,19 @@
 <resources>
-    <string name="app_name">Gdzie Kupić?</string>
+    <string name="app_name">Gdzie Kupić</string>
     <string name="my_location">Moja lokalizacja</string>
     <string name="search_text">Wyszukaj tutaj</string>
+    <string name="sort_by_price">Po cenie</string>
+    <string name="sort_by_distance">Po odległości</string>
+    <string name="shop_image">Shop image</string>
+    <string name="offer_image">Offer image</string>
+    <string name="best_offer">Najlepsza oferta:</string>
+    <string name="available">Dostępny</string>
+    <string name="available_in_week">Dostępny do tygodnia</string>
+    <string name="available_more_week">Dostępny powyżej tygodnia</string>
+    <string name="available_wish">Dostępny na życzenie</string>
+    <string name="check_in_shop">Sprawdź w sklepie</string>
+    <string name="no_internet_conn">Brak połączenia z Internetem</string>
+    <string name="mic">mic</string>
+    <string name="icon">icon</string>
+    <string name="exit">exit</string>
 </resources>

@@ -7,9 +7,9 @@
     android:orientation="vertical">
 
     <RelativeLayout
+        android:id="@+id/shop_details"
         android:layout_width="250dp"
         android:layout_height="50dp"
-        android:id="@+id/shop_details"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:gravity="center">
@@ -18,17 +18,19 @@
             android:id="@+id/shop_logo"
             android:layout_width="wrap_content"
             android:layout_height="50dp"
-            android:layout_centerVertical="true"/>
+            android:layout_centerVertical="true" />
 
         <TextView
-            android:id="@+id/shop_name"
+            android:id="@+id/distance"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:layout_marginStart="20dp"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="10dp"
             android:layout_toEndOf="@+id/shop_logo"
-            android:layout_centerVertical="true"/>
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
     </RelativeLayout>
 
@@ -36,11 +38,13 @@
         android:id="@+id/info_window_exit"
         android:layout_width="20dp"
         android:layout_height="20dp"
+        android:layout_alignParentEnd="true"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="15dp"
-        android:src="@drawable/clear"
         android:layout_toEndOf="@+id/shop_details"
-        android:layout_marginStart="35dp"/>
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="15dp"
+        android:contentDescription="@string/exit"
+        android:src="@drawable/clear" />
 
     <TextView
         android:id="@+id/shop_address"
@@ -54,22 +58,22 @@
 
     <View
         android:id="@+id/line"
-        android:layout_below="@+id/shop_address"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#dedede"
-        android:layout_marginBottom="5dp"/>
+        android:layout_below="@+id/shop_address"
+        android:layout_marginBottom="5dp"
+        android:background="#dedede" />
 
     <android.support.design.widget.TabLayout
+        android:id="@+id/info_window_pager_tabs"
         android:layout_width="match_parent"
         android:layout_height="30dp"
-        android:id="@+id/info_window_pager_tabs"
-        android:layout_below="@+id/line"/>
+        android:layout_below="@+id/line" />
 
     <android.support.v4.view.ViewPager
         android:id="@+id/info_window_pager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@+id/info_window_pager_tabs"/>
+        android:layout_below="@+id/info_window_pager_tabs" />
 
 </RelativeLayout>

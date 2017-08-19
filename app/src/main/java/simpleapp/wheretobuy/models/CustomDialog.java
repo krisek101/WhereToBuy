@@ -12,18 +12,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.TextView;
 
-import com.google.android.gms.maps.model.LatLng;
 import com.squareup.picasso.Picasso;
 
-import java.util.Collections;
 import java.util.List;
 
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
-import simpleapp.wheretobuy.adapters.OffersAdapter;
 import simpleapp.wheretobuy.adapters.SectionsPageAdapter;
 import simpleapp.wheretobuy.fragments.TabOffersInfoWindowFragment;
 import simpleapp.wheretobuy.fragments.TabShopFragment;
@@ -74,7 +70,7 @@ public class CustomDialog extends DialogFragment implements View.OnClickListener
 
         // UI
         ImageView exit = (ImageView) view.findViewById(R.id.info_window_exit);
-        TextView shopName = (TextView) view.findViewById(R.id.shop_name);
+        TextView shopName = (TextView) view.findViewById(R.id.distance);
         TextView shopAddress = (TextView) view.findViewById(R.id.shop_address);
         ImageView shopLogo = (ImageView) view.findViewById(R.id.shop_logo);
 

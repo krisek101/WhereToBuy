@@ -7,27 +7,18 @@ import android.net.Uri;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
-import android.widget.RatingBar;
 import android.widget.TextView;
-
 
 import com.squareup.picasso.Picasso;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.math.RoundingMode;
-import java.text.DecimalFormat;
 import java.util.List;
 
 import simpleapp.wheretobuy.R;
-import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.helpers.PhotoHelper;
 import simpleapp.wheretobuy.models.Offer;
@@ -58,29 +49,30 @@ public class OffersAdapter extends ArrayAdapter<Offer>{
         TextView price = (TextView) convertView.findViewById(R.id.price);
         ImageView photo = (ImageView) convertView.findViewById(R.id.photo);
         TextView availability = (TextView) convertView.findViewById(R.id.availability);
+        TextView shopDistance = (TextView) convertView.findViewById(R.id.distance);
         TextView shopName = (TextView) convertView.findViewById(R.id.shop_name);
 
         title.setText(offer.getTitle());
         price.setText(UsefulFunctions.getPriceFormat(offer.getPrice()));
         switch (offer.getAvailability()){
             case 0:
-                availability.setText("Dostępny");
+                availability.setText(R.string.available);
                 availability.setTextColor(Color.parseColor("#FF39762C"));
                 break;
             case 1:
-                availability.setText("Dostępny do tygodnia");
+                availability.setText(R.string.available_in_week);
                 availability.setTextColor(Color.parseColor("#FFA3701E"));
                 break;
             case 2:
-                availability.setText("Dostępny powyżej tygodnia");
+                availability.setText(R.string.available_more_week);
                 availability.setTextColor(Color.parseColor("#FFA3701E"));
                 break;
             case 3:
-                availability.setText("Dostępny na życzenie");
+                availability.setText(R.string.available_wish);
                 availability.setTextColor(Color.parseColor("#FFA3701E"));
                 break;
             default:
-                availability.setText("Sprawdź w sklepie");
+                availability.setText(R.string.check_in_shop);
                 availability.setTextColor(Color.parseColor("#FFA3701E"));
                 break;
         }
@@ -90,13 +82,14 @@ public class OffersAdapter extends ArrayAdapter<Offer>{
         Picasso.with(context).load(offerUrl).into(photo);
         switch(type){
             case "offer_footer":
-                String shopString = offer.getShop().getName();
                 if(offer.getShop().getBestDistance() != -1 && offer.getShop().getBestDistance() != 1000000f){
-                    shopString += "(" + UsefulFunctions.getDistanceKilometersFormat(offer.getShop().getBestDistance()) + ")";
+                    String distance = UsefulFunctions.getDistanceKilometersFormat(offer.getShop().getBestDistance());
+                    shopDistance.setText(distance);
                 }
-                shopName.setText(shopString);
+                shopName.setText(offer.getShop().getName());
                 break;
             default:
+                shopDistance.setVisibility(View.GONE);
                 shopName.setVisibility(View.GONE);
                 break;
         }

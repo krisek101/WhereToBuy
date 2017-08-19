@@ -4,7 +4,6 @@ import android.content.Context;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -42,7 +41,7 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
         final AutoCompleteResult result = autoCompleteResults.get(position);
 
         // UI
-        Log.i("RESULT NAME", result.getName());
+        //Log.i("RESULT NAME", result.getName());
         TextView name = (TextView) convertView.findViewById(R.id.autocomplete_name);
         RelativeLayout container = (RelativeLayout) convertView.findViewById(R.id.autocomplete_product);
         name.setText(result.getName());
@@ -63,7 +62,6 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
                         mapActivity.requestHelper.setMoreProductsUrl(result.getName(), 20);
                         mapActivity.requestHelper.doRequest(result.getName());
                     } else {
-                        Log.i("HERE", autoCompleteResults.size() + "");
                         for (int i = 0; i < mapActivity.autoCompleteResults.size() - 1; i++) {
                             if (mapActivity.autoCompleteResults.get(i).getId().equals("all")) {
                                 mapActivity.autoCompleteResults.remove(i);
@@ -77,7 +75,8 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
                         }
                     }
                 } else {
-                    AutoCompleteResult r = result;
+                    AutoCompleteResult r;
+                    r = result;
                     mapActivity.autoCompleteResults.clear();
                     mapActivity.autoCompleteResults.add(r);
                     mapActivity.requestHelper.setTag(Constants.TAG_OFFERS);
