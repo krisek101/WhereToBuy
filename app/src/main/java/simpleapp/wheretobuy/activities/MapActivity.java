@@ -27,7 +27,6 @@ import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -97,6 +96,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public boolean footerOpened = false;
     public RelativeLayout footerSlider;
     public float footerTop;
+    public FloatingActionButton goToShopButton;
 
     // Collections
     public List<AutoCompleteResult> autoCompleteResults = new ArrayList<>();
@@ -108,6 +108,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public RequestHelper requestHelper;
     private TextView errorConnected;
     public boolean finish = false;
+    public boolean loading = false;
+    public LatLng tempPosition;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,13 +130,13 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         searchText.setClearButton(ResourcesCompat.getDrawable(getResources(), R.drawable.clear, null), false);
         searchText.setActivity(this);
         queue = Volley.newRequestQueue(this);
-        ((FloatingActionButton) findViewById(R.id.getMyLocationButton)).setImageResource(R.drawable.ic_my_location_white_24dp);
         footer = (RelativeLayout) findViewById(R.id.footer);
         footerTop = footer.getY();
         footerSlider = (RelativeLayout) findViewById(R.id.footer_content);
         footerSlider.setY(UsefulFunctions.getScreenHeight(this) - UsefulFunctions.getStatusBarHeight(this));
         footerSlider.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, UsefulFunctions.getScreenHeight(this) - footer.getLayoutParams().height - UsefulFunctions.getStatusBarHeight(this)));
         errorConnected = (TextView) findViewById(R.id.error_connected);
+        goToShopButton = (FloatingActionButton) findViewById(R.id.goToShopButton);
     }
 
     private void initViewPagers() {
@@ -169,6 +171,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         ListenerHelper listenerHelper = new ListenerHelper(this);
         listenerHelper.setListener(findViewById(R.id.search_mic), "click");
         listenerHelper.setListener(findViewById(R.id.getMyLocationButton), "click");
+        listenerHelper.setListener(goToShopButton, "click");
         listenerHelper.setListener(footer, "touch");
         searchText.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -193,23 +196,27 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 // clear
-                clearResults();
-                finish = false;
-                String input = s.toString();
-                if(input.length() > 1) {
-                    if (input.charAt(s.length() - 1) == ' ') {
-                        input = input.substring(0, input.length() - 1);
+                if(!loading) {
+                    clearResults();
+                    finish = false;
+                    String input = s.toString();
+                    if (input.length() > 1) {
+                        if (input.charAt(s.length() - 1) == ' ') {
+                            input = input.substring(0, input.length() - 1);
+                        }
                     }
-                }
 
-                if (UsefulFunctions.isOnline(MapActivity.this)) {
-                    // update list from Nokaut API
-                    requestHelper = new RequestHelper(Constants.TAG_AUTOCOMPLETE_BY_CATEGORY, MapActivity.this);
-                    requestHelper.setAutocompleteByCategoryUrl(input);
-                    requestHelper.doRequest("");
-                    errorConnected.setVisibility(View.GONE);
+                    if (UsefulFunctions.isOnline(MapActivity.this)) {
+                        // update list from Nokaut API
+                        requestHelper = new RequestHelper(Constants.TAG_AUTOCOMPLETE_BY_CATEGORY, MapActivity.this);
+                        requestHelper.setAutocompleteByCategoryUrl(input);
+                        requestHelper.doRequest("");
+                        errorConnected.setVisibility(View.GONE);
+                    } else {
+                        errorConnected.setVisibility(View.VISIBLE);
+                    }
                 } else {
-                    errorConnected.setVisibility(View.VISIBLE);
+                    loading = false;
                 }
             }
 
@@ -462,10 +469,24 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             }
         });
 
+        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                if (!marker.equals(userLocationMarker)) {
+                    tempPosition = marker.getPosition();
+                    goToShopButton.setVisibility(View.VISIBLE);
+                } else {
+                    goToShopButton.setVisibility(View.GONE);
+                }
+                return false;
+            }
+        });
+
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
                 hideKeyboard();
+                goToShopButton.setVisibility(View.GONE);
             }
         });
 
@@ -520,7 +541,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     public void changeFooterInfo() {
-        LinearLayout floatingButtonContainer = (LinearLayout) findViewById(R.id.floating_button_container);
+        RelativeLayout floatingButtonContainer = (RelativeLayout) findViewById(R.id.floating_button_container);
         RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) floatingButtonContainer.getLayoutParams();
         if (offers.size() == 0) {
             footer.setVisibility(View.GONE);
@@ -582,7 +603,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
             // Setters
             nearMeText.setText(String.valueOf(nearMe));
-            bestPriceText.setText(getString(R.string.best_offer) + UsefulFunctions.getPriceFormat(bestOffer.getPrice()) + "");
+            bestPriceText.setText(getString(R.string.best_offer) + " " + UsefulFunctions.getPriceFormat(bestOffer.getPrice()) + "");
             outsideText.setText(String.valueOf(outside));
 
             // Shops
@@ -680,7 +701,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     public Shop getShopByShopLocation(ShopLocation shopLocation) {
-        for(Shop s : shops){
+        for (Shop s : shops) {
             for (ShopLocation sl : s.getLocations()) {
                 if (sl.equals(shopLocation)) {
                     return s;
@@ -693,7 +714,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public List<Offer> getOffersByShop(Shop shop) {
         List<Offer> offersByShop = new ArrayList<>();
         for (Offer o : offers) {
-            if(o.getShop().equals(shop)){
+            if (o.getShop().equals(shop)) {
                 offersByShop.add(o);
             }
         }

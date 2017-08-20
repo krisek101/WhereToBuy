@@ -1,10 +1,10 @@
 package simpleapp.wheretobuy.helpers;
 
 import android.content.Intent;
-import android.content.res.TypedArray;
 import android.graphics.Color;
+import android.net.Uri;
 import android.speech.RecognizerIntent;
-import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -57,6 +57,20 @@ public class ListenerHelper {
                             parentActivity.mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(parentActivity.userLocation, 13));
                         }
                         parentActivity.checkUsersSettingGPS();
+                        break;
+                    case R.id.goToShopButton:
+                        Uri gmmIntentUri = Uri.parse("google.navigation:q=" + parentActivity.tempPosition.latitude + "," + parentActivity.tempPosition.longitude);
+                        Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
+                        mapIntent.setPackage("com.google.android.apps.maps");
+                        try {
+                            parentActivity.startActivity(mapIntent);
+                        } catch (Exception e) {
+                            gmmIntentUri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=" + parentActivity.tempPosition.latitude + "," + parentActivity.tempPosition.longitude);
+                            Log.v("ADRES", gmmIntentUri.toString());
+                            Intent callIntent = new Intent(Intent.ACTION_VIEW);
+                            callIntent.setData(gmmIntentUri);
+                            parentActivity.startActivity(callIntent);
+                        }
                         break;
                 }
             }

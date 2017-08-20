@@ -332,13 +332,14 @@ public class RequestHelper {
         // update footer info
         mapActivity.changeFooterInfo();
 
-        Log.i("PRODUCTS", "All:" + (mapActivity.autoCompleteResults.size() - 1) + ", CURRENT:" + (index) + " - " + mapActivity.autoCompleteResults.get(index).getName());
+//        Log.i("PRODUCTS", "All:" + (mapActivity.autoCompleteResults.size() - 1) + ", CURRENT:" + (index) + " - " + mapActivity.autoCompleteResults.get(index).getName());
         if (mapActivity.autoCompleteResults.size() - 1 == index) {
             index = 0;
             for (Shop shop : mapActivity.shops) {
                 // get shop locations
                 setShopLocations(shop);
             }
+            mapActivity.setLoading(false);
         }
         index++;
     }
@@ -349,9 +350,10 @@ public class RequestHelper {
         if (ja.length() != 0) {
             String name, placeId;
             LatLng location;
-            Double rating;
+            Double rating = 0.0;
             Boolean openNow;
             ShopLocation shopLocation;
+            String vicinity = "";
 
             for (int i = 0; i < ja.length(); i++) {
                 JSONObject c = ja.getJSONObject(i);
@@ -361,12 +363,18 @@ public class RequestHelper {
                         JSONObject locationJSON = c.getJSONObject("geometry").getJSONObject("location");
                         location = new LatLng(locationJSON.getDouble("lat"), locationJSON.getDouble("lng"));
                         placeId = c.getString("place_id");
-                        rating = c.getDouble("rating");
+                        if (c.has("rating")) {
+                            rating = c.getDouble("rating");
+                        }
+                        if (c.has("vicinity")) {
+                            vicinity = c.getString("vicinity");
+                        }
                         openNow = c.getJSONObject("opening_hours").getBoolean("open_now");
 
                         // add marker to map
                         Marker marker = mapActivity.mMap.addMarker(new MarkerOptions().position(location).title(shop.getName()));
                         shopLocation = new ShopLocation(placeId, name, location, marker, UsefulFunctions.getDistanceBetween(location, mapActivity.userLocation), rating, openNow);
+                        shopLocation.setAddress(vicinity);
                         shop.addLocation(shopLocation);
                     }
                 }

@@ -8,47 +8,76 @@
         android:id="@+id/shop_tel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:clickable="true"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textSize="18sp"
+        android:layout_margin="5dp"
         android:background="@drawable/info_window_rounded"
-        android:padding="5dp"
-        android:drawableStart="@drawable/tel_icon"
-        android:gravity="center_vertical"
+        android:clickable="true"
         android:drawablePadding="5dp"
-        android:layout_margin="5dp" />
+        android:drawableStart="@drawable/tel_icon"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:maxLines="1"
+        android:padding="5dp"
+        android:textSize="18sp" />
 
     <TextView
         android:id="@+id/shop_url"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/shop_tel"
-        android:clickable="true"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textSize="18sp"
-        android:background="@drawable/info_window_rounded"
-        android:padding="5dp"
-        android:drawableStart="@drawable/web_icon"
-        android:drawablePadding="5dp"
         android:layout_margin="5dp"
-        android:gravity="center_vertical" />
+        android:background="@drawable/info_window_rounded"
+        android:clickable="true"
+        android:drawablePadding="5dp"
+        android:drawableStart="@drawable/web_icon"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:maxLines="1"
+        android:padding="5dp"
+        android:textSize="18sp" />
 
     <Spinner
         android:id="@+id/shop_hours"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/shop_url"
-        android:spinnerMode="dialog"
+        android:layout_margin="5dp"
         android:background="@drawable/info_window_rounded"
-        android:layout_margin="5dp" />
+        android:spinnerMode="dialog" />
+
+    <!--<RelativeLayout-->
+        <!--android:id="@+id/rating_container"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_below="@+id/shop_hours"-->
+        <!--android:layout_margin="5dp"-->
+        <!--android:background="@drawable/info_window_rounded">-->
+
+        <!--<TextView-->
+            <!--android:id="@+id/rating"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_centerVertical="true"-->
+            <!--android:layout_marginStart="5dp"-->
+            <!--android:textSize="24sp" />-->
+
+        <!--<RatingBar-->
+            <!--android:id="@+id/rating_stars"-->
+            <!--style="?android:attr/ratingBarStyleIndicator"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_centerVertical="true"-->
+            <!--android:layout_marginStart="5dp"-->
+            <!--android:layout_toEndOf="@+id/rating"-->
+            <!--android:isIndicator="true"-->
+            <!--android:stepSize="0.1" />-->
+
+    <!--</RelativeLayout>-->
 
     <ListView
         android:id="@+id/shop_reviews"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@+id/shop_hours"
-        android:layout_margin="5dp"/>
+        android:layout_margin="5dp" />
 
 </RelativeLayout>

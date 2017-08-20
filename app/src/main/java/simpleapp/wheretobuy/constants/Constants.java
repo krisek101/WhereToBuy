@@ -21,7 +21,7 @@ public class Constants {
     public static final String WEB_API_GOOGLE_KEY = "AIzaSyA_C2NPat715q0hNN_S_ltWo2e1agdP1jI";
 
     // Constants
-    public static final int SPLASH_TIME = 1000;
+    public static final int SPLASH_TIME = 500;
     public static final String UNKNOWN_ADDRESS = "Adres nieznany";
     public static final String[] BLACK_LIST_SHOPS = {"mall.pl", "sklep bielsko-biała", "twójlombard.pl", "Bauer Fitness", "SKLEP SPORTOWY DWS-SPORT.PL",
             "TopSlim", "KokiskashopPL", "ATHLETIC24.PL", "electronic-star", "przydomu.pl", "Makstor", "Sklep Puregreen - najlepsze wyciskarki do soków.", "Fit and Strong - Sklep Sportowy", "vidaXL",

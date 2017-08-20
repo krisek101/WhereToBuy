@@ -50,6 +50,9 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
         container.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if(mapActivity.userLocation == null){
+                    mapActivity.checkUsersSettingGPS();
+                }
                 // clear
                 mapActivity.offers.clear();
                 mapActivity.clearShopMarkers();
@@ -85,7 +88,8 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
                 }
 
                 // search field
-//                mapActivity.searchText.setText(result.getName());
+                mapActivity.loading = true;
+                mapActivity.searchText.setText(result.getName());
                 mapActivity.searchText.dismissDropDown();
                 mapActivity.hideKeyboard();
 

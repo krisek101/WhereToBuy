@@ -24,6 +24,7 @@ public class ShopLocation implements Comparable<ShopLocation> {
     private boolean openNow;
     private List<String> photos = new ArrayList<>();
     private String website;
+    private String address;
 
     public ShopLocation(String id, String name, LatLng location, Marker marker, Double distanceFromUser, double rating, boolean openNow) {
         this.id = id;
@@ -129,6 +130,14 @@ public class ShopLocation implements Comparable<ShopLocation> {
 
     public void setWebsite(String website) {
         this.website = website;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     @Override

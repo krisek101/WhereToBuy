@@ -1,6 +1,7 @@
 package simpleapp.wheretobuy.adapters;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -41,6 +42,7 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
         TextView shopNameText;
         TextView priceText;
         ImageView photo;
+        TextView openNow;
     }
 
     @NonNull
@@ -55,6 +57,7 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
             holder.shopNameText = (TextView) convertView.findViewById(R.id.distance);
             holder.priceText = (TextView) convertView.findViewById(R.id.price);
             holder.photo = (ImageView) convertView.findViewById(R.id.photo);
+            holder.openNow = (TextView) convertView.findViewById(R.id.open_now);
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
@@ -74,6 +77,17 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
             holder.distance.setVisibility(View.VISIBLE);
         } else {
             holder.distance.setVisibility(View.GONE);
+        }
+        if(!shop.getLocations().isEmpty()){
+            String open;
+            if(shop.getLocations().get(0).isOpenNow()){
+                open = "Otwarte teraz";
+                holder.openNow.setTextColor(Color.parseColor("#FF39762C"));
+            } else {
+                open = "Zamknięte teraz";
+                holder.openNow.setTextColor(Color.parseColor("#FFA3701E"));
+            }
+            holder.openNow.setText(open);
         }
 
         // Listener

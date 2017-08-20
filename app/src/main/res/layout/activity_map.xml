@@ -64,7 +64,7 @@
         android:textColor="#9e3305"
         android:visibility="gone" />
 
-    <LinearLayout
+    <RelativeLayout
         android:id="@+id/floating_button_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -75,16 +75,29 @@
         android:orientation="horizontal">
 
         <android.support.design.widget.FloatingActionButton
-            android:id="@+id/getMyLocationButton"
-            android:layout_width="0dp"
+            android:id="@+id/goToShopButton"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:clickable="true"
             app:borderWidth="0dp"
             app:elevation="0dp"
             app:fabSize="normal"
+            app:srcCompat="@drawable/directions"
+            android:layout_marginBottom="20dp"
+            android:visibility="gone"/>
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/getMyLocationButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            app:borderWidth="0dp"
+            app:elevation="0dp"
+            app:fabSize="normal"
+            android:layout_below="@+id/goToShopButton"
             app:srcCompat="@drawable/ic_my_location_white_24dp" />
-    </LinearLayout>
+
+    </RelativeLayout>
 
     <include layout="@layout/footer_handler" />
 

@@ -83,8 +83,11 @@ public class OffersAdapter extends ArrayAdapter<Offer>{
         switch(type){
             case "offer_footer":
                 if(offer.getShop().getBestDistance() != -1 && offer.getShop().getBestDistance() != 1000000f){
+                    shopDistance.setVisibility(View.VISIBLE);
                     String distance = UsefulFunctions.getDistanceKilometersFormat(offer.getShop().getBestDistance());
                     shopDistance.setText(distance);
+                } else {
+                    shopDistance.setVisibility(View.GONE);
                 }
                 shopName.setText(offer.getShop().getName());
                 break;

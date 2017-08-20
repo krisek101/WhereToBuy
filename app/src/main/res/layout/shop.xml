@@ -17,22 +17,22 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
-        android:maxWidth="200dp"
         android:layout_toEndOf="@+id/photo"
         android:ellipsize="end"
         android:maxLines="1"
+        android:maxWidth="200dp"
+        android:textAllCaps="true"
         android:textColor="#000"
         android:textSize="17sp"
-        android:textStyle="bold"
-        android:textAllCaps="true"/>
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/shop_distance"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:maxWidth="70dp"
         android:layout_alignParentEnd="true"
         android:layout_alignParentTop="true"
+        android:maxWidth="70dp"
         android:textColor="#000"
         android:textSize="15sp" />
 
@@ -40,12 +40,21 @@
         android:id="@+id/price"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_below="@+id/distance"
         android:layout_marginStart="10dp"
         android:layout_toEndOf="@+id/photo"
-        android:layout_below="@+id/distance"
-        android:textSize="16sp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="#000" />
+        android:textColor="#000"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/open_now"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/price"
+        android:layout_marginStart="10dp"
+        android:layout_toEndOf="@+id/photo"
+        android:textSize="15sp" />
 
 </RelativeLayout>

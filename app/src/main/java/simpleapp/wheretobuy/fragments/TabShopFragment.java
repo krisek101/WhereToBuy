@@ -59,6 +59,16 @@ public class TabShopFragment extends Fragment {
         final TextView website = (TextView) view.findViewById(R.id.shop_url);
         final Spinner hours = (Spinner) view.findViewById(R.id.shop_hours);
         final ListView reviewsList = (ListView) view.findViewById(R.id.shop_reviews);
+//        final TextView rating = (TextView) view.findViewById(R.id.rating);
+//        final RatingBar ratingBar = (RatingBar) view.findViewById(R.id.rating_stars);
+//        final RelativeLayout ratingContainer = (RelativeLayout) view.findViewById(R.id.rating_container);
+//        if (shopLocation.getRating() != 0) {
+//            rating.setText(String.valueOf(shopLocation.getRating()));
+//            ratingBar.setRating((float) shopLocation.getRating());
+//            ratingContainer.setVisibility(View.VISIBLE);
+//        } else {
+//            ratingContainer.setVisibility(View.GONE);
+//        }
 
         // Setters
         final Handler h = new Handler();
@@ -68,7 +78,6 @@ public class TabShopFragment extends Fragment {
         h.postDelayed(new Runnable() {
             public void run() {
                 if (already[0]) {
-                    already[0] = true;
                     if (shopLocation.getPhoneNumber() != null && shopLocation.getWebsite() != null && shopLocation.getOpenHours() != null && shopLocation.getReviews() != null) {
                         already[0] = false;
                         if (!shopLocation.getPhoneNumber().isEmpty()) {
@@ -99,12 +108,37 @@ public class TabShopFragment extends Fragment {
                         }
                         if (!shopLocation.getOpenHours().isEmpty()) {
                             Calendar cal = Calendar.getInstance();
-                            int today = cal.get(Calendar.DAY_OF_WEEK);
+                            int day = cal.get(Calendar.DAY_OF_WEEK);
+                            int today = 0;
                             String[] array = new String[shopLocation.getOpenHours().size()];
                             shopLocation.getOpenHours().toArray(array);
                             ArrayAdapter<String> adapter = new ArrayAdapter<>(mapActivity, android.R.layout.simple_spinner_dropdown_item, array);
                             hours.setAdapter(adapter);
-                            hours.setSelection(today-2);
+                            switch(day){
+                                case Calendar.SUNDAY:
+                                    today = 6;
+                                    break;
+                                case Calendar.MONDAY:
+                                    today = 0;
+                                    break;
+                                case Calendar.TUESDAY:
+                                    today = 1;
+                                    break;
+                                case Calendar.WEDNESDAY:
+                                    today = 2;
+                                    break;
+                                case Calendar.THURSDAY:
+                                    today = 3;
+                                    break;
+                                case Calendar.FRIDAY:
+                                    today = 4;
+                                    break;
+                                case Calendar.SATURDAY:
+                                    today = 5;
+                                    break;
+
+                            }
+                            hours.setSelection(today);
                         } else {
                             hours.setVisibility(View.GONE);
                         }
@@ -122,6 +156,7 @@ public class TabShopFragment extends Fragment {
                         } else {
                             reviewsList.setVisibility(View.GONE);
                         }
+
                     }
                 } else {
                     h.removeCallbacks(runnable[0]);

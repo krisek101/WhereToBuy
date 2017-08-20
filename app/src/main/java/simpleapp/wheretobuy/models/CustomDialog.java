@@ -31,10 +31,10 @@ public class CustomDialog extends DialogFragment implements View.OnClickListener
     ShopLocation shopLocation;
     MapActivity mapActivity;
 
-    public CustomDialog(){
+    public CustomDialog() {
     }
 
-    public static CustomDialog newInstance(List<Offer> offersByPosition, ShopLocation shopLocation, MapActivity mapActivity){
+    public static CustomDialog newInstance(List<Offer> offersByPosition, ShopLocation shopLocation, MapActivity mapActivity) {
         CustomDialog f = new CustomDialog();
         f.offersByPosition = offersByPosition;
         f.shopLocation = shopLocation;
@@ -62,7 +62,7 @@ public class CustomDialog extends DialogFragment implements View.OnClickListener
 
         TabOffersInfoWindowFragment tabOffersInfoWindowFragment = TabOffersInfoWindowFragment.newInstance(offersByPosition, mapActivity);
         adapter.addFragment(tabOffersInfoWindowFragment, "Oferty");
-        if(shopLocation != null) {
+        if (shopLocation != null) {
             TabShopFragment tabShopFragment = TabShopFragment.newInstance(shopLocation, mapActivity);
             adapter.addFragment(tabShopFragment, "O sklepie");
         }
@@ -79,7 +79,11 @@ public class CustomDialog extends DialogFragment implements View.OnClickListener
         exit.setOnClickListener(this);
         shopName.setText(shop.getName());
         if (shopLocation != null) {
-            new GeocoderTask(mapActivity, shopLocation.getLocation(), shopAddress).execute();
+            if (shopLocation.getAddress().isEmpty()) {
+                new GeocoderTask(mapActivity, shopLocation.getLocation(), shopAddress).execute();
+            } else {
+                shopAddress.setText(shopLocation.getAddress());
+            }
         } else {
             shopAddress.setVisibility(View.GONE);
         }
@@ -93,12 +97,14 @@ public class CustomDialog extends DialogFragment implements View.OnClickListener
     public void onStart() {
         super.onStart();
         Window window = getDialog().getWindow();
-        window.setBackgroundDrawableResource(android.R.color.transparent);
+        if (window != null) {
+            window.setBackgroundDrawableResource(android.R.color.transparent);
+        }
     }
 
     @Override
     public void onClick(View view) {
-        switch (view.getId()){
+        switch (view.getId()) {
             case R.id.info_window_exit:
                 getDialog().dismiss();
                 Log.i("Dialog", "dismiss");

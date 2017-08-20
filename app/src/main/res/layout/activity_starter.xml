@@ -3,7 +3,7 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#EEEEEE">
+    android:background="#fff">
 
     <ImageView
         android:id="@+id/icon_splashscreen"
@@ -17,10 +17,11 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="20sp"
+        android:textSize="28sp"
         android:layout_below="@+id/icon_splashscreen"
         android:layout_marginTop="20dp"
         android:layout_centerHorizontal="true"
+        android:textColor="#363636"
         android:text="@string/app_name"/>
 
 </RelativeLayout>
