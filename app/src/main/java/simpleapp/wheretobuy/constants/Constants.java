@@ -15,6 +15,7 @@ public class Constants {
     public static final String TAG_PLACES = "TAG_PLACES";
     public static final String TAG_PLACE_DETAILS = "TAG_PLACE_DETAILS";
     public static final String TAG_MORE_PRODUCTS = "TAG_MORE_PRODUCTS";
+    public static final String TAG_SEARCH_ADDRESS_AUTOCOMPLETE = "TAG_SEARCH_ADDRESS_AUTOCOMPLETE";
 
     // Tokens and Keys
     public static final String NOKAUT_TOKEN = "1/c1d3e6f5f27737fe2cb0dfd5b0046743ae4297da1c446fbe1219b8db7475367c";

@@ -14,10 +14,7 @@ public class Shop implements Comparable<Shop> {
     private String logoUrl;
     private List<ShopLocation> locations = new ArrayList<>();
     private double bestDistance = -1;
-
-    public Shop(){
-
-    }
+    private double minPrice = -1;
 
     public Shop(String name, String url, String logoUrl, String id) {
         this.name = name;
@@ -107,5 +104,13 @@ public class Shop implements Comparable<Shop> {
         } else {
             return false;
         }
+    }
+
+    public double getMinPrice() {
+        return minPrice;
+    }
+
+    public void setMinPrice(double minPrice) {
+        this.minPrice = minPrice;
     }
 }

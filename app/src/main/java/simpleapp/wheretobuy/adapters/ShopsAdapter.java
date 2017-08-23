@@ -43,6 +43,7 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
         TextView priceText;
         ImageView photo;
         TextView openNow;
+        TextView counter;
     }
 
     @NonNull
@@ -58,6 +59,7 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
             holder.priceText = (TextView) convertView.findViewById(R.id.price);
             holder.photo = (ImageView) convertView.findViewById(R.id.photo);
             holder.openNow = (TextView) convertView.findViewById(R.id.open_now);
+            holder.counter = (TextView) convertView.findViewById(R.id.count_offers);
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
@@ -66,21 +68,30 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
         final Shop shop = shops.get(position);
         final List<Offer> offersFromShop = getOffersFromShop(shop);
         Collections.sort(offersFromShop);
+        double priceMin = offersFromShop.get(0).getPrice();
+        double priceMax = offersFromShop.get(offersFromShop.size() - 1).getPrice();
 
         // Setters
         String logoUrl = "http://offers.gallery" + shop.getLogoUrl();
         Picasso.with(context).load(logoUrl).into(holder.photo);
         holder.shopNameText.setText(shop.getName());
-        holder.priceText.setText(UsefulFunctions.getPriceFormat(offersFromShop.get(0).getPrice()) + " - " + UsefulFunctions.getPriceFormat(offersFromShop.get(offersFromShop.size() - 1).getPrice()));
+        holder.counter.setText("Liczba ofert: " + offersFromShop.size());
+        if (priceMin == priceMax) {
+            holder.priceText.setText(UsefulFunctions.getPriceFormat(priceMin));
+        } else {
+            holder.priceText.setText(UsefulFunctions.getPriceFormat(priceMin) + " - " + UsefulFunctions.getPriceFormat(priceMax));
+        }
+
         if (shop.getBestDistance() != -1 && shop.getBestDistance() != 1000000f) {
             holder.distance.setText(UsefulFunctions.getDistanceKilometersFormat(shop.getBestDistance()));
             holder.distance.setVisibility(View.VISIBLE);
         } else {
             holder.distance.setVisibility(View.GONE);
         }
-        if(!shop.getLocations().isEmpty()){
+        if (!shop.getLocations().isEmpty()) {
             String open;
-            if(shop.getLocations().get(0).isOpenNow()){
+            holder.openNow.setVisibility(View.VISIBLE);
+            if (shop.getLocations().get(0).isOpenNow()) {
                 open = "Otwarte teraz";
                 holder.openNow.setTextColor(Color.parseColor("#FF39762C"));
             } else {
@@ -88,6 +99,8 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
                 holder.openNow.setTextColor(Color.parseColor("#FFA3701E"));
             }
             holder.openNow.setText(open);
+        } else {
+            holder.openNow.setVisibility(View.GONE);
         }
 
         // Listener

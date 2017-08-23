@@ -1,11 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <RelativeLayout
+        android:id="@+id/filters_shops"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="5dp"
+        android:layout_marginStart="5dp"
+        android:layout_marginTop="5dp"
+        android:textSize="14sp">
+
+        <Button
+            android:id="@+id/sort_shops_by_price"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:background="@drawable/info_window_rounded"
+            android:paddingEnd="10dp"
+            android:paddingStart="10dp"
+            android:text="@string/sort_by_price"
+            android:textColor="#767676" />
+
+        <Button
+            android:id="@+id/sort_shops_by_distance"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:layout_marginStart="5dp"
+            android:layout_toEndOf="@+id/sort_shops_by_price"
+            android:background="@drawable/rounded_clicked"
+            android:paddingEnd="10dp"
+            android:paddingStart="10dp"
+            android:text="@string/sort_by_distance"
+            android:textColor="#000000" />
+
+    </RelativeLayout>
 
     <ListView
+        android:id="@+id/footer_shops"
         android:layout_width="match_parent"
         android:layout_height="fill_parent"
-        android:id="@+id/footer_shops">
-    </ListView>
+        android:layout_below="@+id/filters_shops" />
 
 </RelativeLayout>

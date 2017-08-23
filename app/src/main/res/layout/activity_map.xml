@@ -19,9 +19,9 @@
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="5dp"
-        android:layout_marginStart="5dp"
         android:layout_marginEnd="5dp"
+        android:layout_marginStart="5dp"
+        android:layout_marginTop="5dp"
         android:background="@drawable/rounded_edittext">
 
         <ImageView
@@ -31,8 +31,8 @@
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:layout_marginEnd="10dp"
-            android:src="@drawable/mic_icon"
-            android:contentDescription="@string/mic" />
+            android:contentDescription="@string/mic"
+            android:src="@drawable/mic_icon" />
 
         <simpleapp.wheretobuy.constants.ClearableAutoCompleteTextView
             android:id="@+id/search_text"
@@ -44,6 +44,8 @@
             android:layout_marginStart="15dp"
             android:background="@android:color/transparent"
             android:hint="@string/search_text"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
             android:maxLines="1"
             android:textSize="20sp" />
 
@@ -57,11 +59,11 @@
         android:layout_centerHorizontal="true"
         android:layout_marginEnd="5dp"
         android:layout_marginStart="5dp"
-        android:gravity="center"
-        android:textSize="16sp"
-        android:text="@string/no_internet_conn"
         android:background="@drawable/rounded_edittext"
+        android:gravity="center"
+        android:text="@string/no_internet_conn"
         android:textColor="#9e3305"
+        android:textSize="16sp"
         android:visibility="gone" />
 
     <RelativeLayout
@@ -78,26 +80,28 @@
             android:id="@+id/goToShopButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
             android:clickable="true"
+            android:visibility="gone"
             app:borderWidth="0dp"
             app:elevation="0dp"
             app:fabSize="normal"
-            app:srcCompat="@drawable/directions"
-            android:layout_marginBottom="20dp"
-            android:visibility="gone"/>
+            app:srcCompat="@drawable/directions" />
 
         <android.support.design.widget.FloatingActionButton
             android:id="@+id/getMyLocationButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_below="@+id/goToShopButton"
             android:clickable="true"
             app:borderWidth="0dp"
             app:elevation="0dp"
             app:fabSize="normal"
-            android:layout_below="@+id/goToShopButton"
             app:srcCompat="@drawable/ic_my_location_white_24dp" />
 
     </RelativeLayout>
+
+    <include layout="@layout/fab_location" />
 
     <include layout="@layout/footer_handler" />
 

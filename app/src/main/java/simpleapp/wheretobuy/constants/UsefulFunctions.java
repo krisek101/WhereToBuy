@@ -3,7 +3,6 @@ package simpleapp.wheretobuy.constants;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.res.TypedArray;
 import android.location.Location;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -60,5 +59,14 @@ public class UsefulFunctions {
 
     public static int getPixelsFromDp(Context c, float sizeDp) {
         return (int) (sizeDp * c.getResources().getDisplayMetrics().density);
+    }
+
+    public static String deleteEndSpace(String input){
+        if (input.length() > 0) {
+            if (input.charAt(input.length() - 1) == ' ') {
+                input = input.substring(0, input.length() - 1);
+            }
+        }
+        return input;
     }
 }

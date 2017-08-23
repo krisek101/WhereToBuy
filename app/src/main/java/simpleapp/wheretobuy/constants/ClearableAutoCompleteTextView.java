@@ -61,7 +61,9 @@ public class ClearableAutoCompleteTextView extends android.support.v7.widget.App
                         - _this.clearButton.getIntrinsicWidth()) {
                     _this.setText("");
                     _this.setCompoundDrawables(null, null, null, null);
-                    mapActivity.clearResults();
+                    if(mapActivity != null) {
+                        mapActivity.clearResults();
+                    }
                 }
                 return false;
             }

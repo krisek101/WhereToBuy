@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/info_window_rounded">
+
+    <simpleapp.wheretobuy.constants.ClearableAutoCompleteTextView
+        android:id="@+id/search_location"
+        android:layout_width="match_parent"
+        android:layout_height="45dp"
+        android:layout_centerHorizontal="true"
+        android:paddingStart="15dp"
+        android:paddingEnd="15dp"
+        android:background="@drawable/info_window_rounded"
+        android:hint="@string/enter_address_here"
+        android:maxLines="1"
+        android:textSize="18sp" />
+
+</RelativeLayout>

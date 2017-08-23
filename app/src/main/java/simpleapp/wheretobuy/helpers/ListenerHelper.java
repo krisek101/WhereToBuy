@@ -9,8 +9,6 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.google.android.gms.maps.CameraUpdateFactory;
-
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.constants.Constants;
@@ -53,10 +51,11 @@ public class ListenerHelper {
                         parentActivity.startActivityForResult(intent, Constants.SPEECH_REQUEST_CODE);
                         break;
                     case R.id.getMyLocationButton:
-                        if (parentActivity.userLocation != null) {
-                            parentActivity.mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(parentActivity.userLocation, 13));
+                        if (parentActivity.getMyLocationButtonClicked) {
+                            parentActivity.hideFabOptions();
+                        } else {
+                            parentActivity.showFabOptions();
                         }
-                        parentActivity.checkUsersSettingGPS();
                         break;
                     case R.id.goToShopButton:
                         Uri gmmIntentUri = Uri.parse("google.navigation:q=" + parentActivity.tempPosition.latitude + "," + parentActivity.tempPosition.longitude);
@@ -71,6 +70,14 @@ public class ListenerHelper {
                             callIntent.setData(gmmIntentUri);
                             parentActivity.startActivity(callIntent);
                         }
+                        break;
+                    case R.id.getMyLocation:
+                        parentActivity.checkUsersSettingGPS();
+                        parentActivity.hideFabOptions();
+                        break;
+                    case R.id.setUserLocation:
+                        parentActivity.changeUserLocation();
+                        parentActivity.hideFabOptions();
                         break;
                 }
             }

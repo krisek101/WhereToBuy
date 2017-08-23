@@ -3,42 +3,45 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <Button
-        android:id="@+id/sort_by_price"
+    <RelativeLayout
+        android:id="@+id/filters_offers"
         android:layout_width="wrap_content"
-        android:layout_height="30dp"
+        android:layout_height="wrap_content"
         android:layout_alignParentStart="true"
         android:layout_marginBottom="5dp"
         android:layout_marginStart="5dp"
         android:layout_marginTop="5dp"
-        android:background="@drawable/rounded_clicked"
-        android:paddingEnd="10dp"
-        android:paddingStart="10dp"
-        android:text="@string/sort_by_price"
-        android:textColor="#000000"
         android:textSize="14sp"
-        android:visibility="gone" />
+        android:visibility="gone">
 
-    <Button
-        android:id="@+id/sort_by_distance"
-        android:layout_width="wrap_content"
-        android:layout_height="30dp"
-        android:layout_marginBottom="5dp"
-        android:layout_marginStart="5dp"
-        android:layout_marginTop="5dp"
-        android:layout_toEndOf="@+id/sort_by_price"
-        android:background="@drawable/info_window_rounded"
-        android:paddingEnd="10dp"
-        android:paddingStart="10dp"
-        android:text="@string/sort_by_distance"
-        android:textColor="#767676"
-        android:textSize="14sp"
-        android:visibility="gone" />
+        <Button
+            android:id="@+id/sort_by_price"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:background="@drawable/rounded_clicked"
+            android:paddingEnd="10dp"
+            android:paddingStart="10dp"
+            android:text="@string/sort_by_price"
+            android:textColor="#000000" />
+
+        <Button
+            android:id="@+id/sort_by_distance"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:layout_marginStart="5dp"
+            android:layout_toEndOf="@+id/sort_by_price"
+            android:background="@drawable/info_window_rounded"
+            android:paddingEnd="10dp"
+            android:paddingStart="10dp"
+            android:text="@string/sort_by_distance"
+            android:textColor="#767676" />
+
+    </RelativeLayout>
 
     <ListView
         android:id="@+id/footer_offers"
         android:layout_width="match_parent"
         android:layout_height="fill_parent"
-        android:layout_below="@+id/sort_by_distance" />
+        android:layout_below="@+id/filters_offers" />
 
 </RelativeLayout>

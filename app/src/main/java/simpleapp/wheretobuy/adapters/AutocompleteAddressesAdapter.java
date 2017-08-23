@@ -11,23 +11,28 @@ import android.widget.ArrayAdapter;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
-import simpleapp.wheretobuy.models.AutoCompleteResult;
+import simpleapp.wheretobuy.constants.Constants;
+import simpleapp.wheretobuy.helpers.RequestHelper;
 
-public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
+public class AutocompleteAddressesAdapter extends ArrayAdapter<String> {
 
     private MapActivity mapActivity;
     private Context context;
-    private List<AutoCompleteResult> autoCompleteResults;
+    private List<String> ids;
+    private List<String> results;
 
-    public AutocompleteAdapter(@LayoutRes int resource, List<AutoCompleteResult> autoCompleteResults, MapActivity mapActivity) {
-        super(mapActivity.getBaseContext(), resource, autoCompleteResults);
+    public AutocompleteAddressesAdapter(@LayoutRes int resource, Map<String, String> autoCompleteResults, MapActivity mapActivity) {
+        super(mapActivity.getBaseContext(), resource, new ArrayList<>(autoCompleteResults.keySet()));
         this.context = mapActivity.getBaseContext();
         this.mapActivity = mapActivity;
-        this.autoCompleteResults = autoCompleteResults;
+        this.ids = new ArrayList<>(autoCompleteResults.keySet());
+        this.results = new ArrayList<>(autoCompleteResults.values());
     }
 
     @NonNull
@@ -37,19 +42,26 @@ public class AutocompleteAdapter extends ArrayAdapter<AutoCompleteResult> {
             convertView = LayoutInflater.from(context).inflate(R.layout.autocomplete_item, parent, false);
         }
 
-        final AutoCompleteResult result = autoCompleteResults.get(position);
+        final String result = results.get(position);
+        final String id = ids.get(position);
 
         // UI
-        //Log.i("RESULT NAME", result.getName());
         TextView name = (TextView) convertView.findViewById(R.id.autocomplete_name);
         RelativeLayout container = (RelativeLayout) convertView.findViewById(R.id.autocomplete_product);
-        name.setText(result.getName());
+        name.setText(result);
 
         // listener
         container.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mapActivity.queryOffers(result);
+                // set new search position
+                RequestHelper placeDetailsRequest = new RequestHelper(Constants.TAG_PLACE_DETAILS, mapActivity);
+                placeDetailsRequest.setPlaceDetailsUrl(id);
+                placeDetailsRequest.doRequest("");
+
+                mapActivity.searchLocation.setText(result);
+                mapActivity.searchLocation.dismissDropDown();
+                mapActivity.hideKeyboard();
             }
         });
 

@@ -57,4 +57,13 @@
         android:layout_toEndOf="@+id/photo"
         android:textSize="15sp" />
 
+    <TextView
+        android:id="@+id/count_offers"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/open_now"
+        android:layout_marginStart="10dp"
+        android:layout_toEndOf="@+id/photo"
+        android:textSize="15sp" />
+
 </RelativeLayout>
