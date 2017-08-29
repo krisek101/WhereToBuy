@@ -24,8 +24,6 @@ import java.util.List;
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.adapters.ReviewsAdapter;
-import simpleapp.wheretobuy.constants.Constants;
-import simpleapp.wheretobuy.helpers.RequestHelper;
 import simpleapp.wheretobuy.models.ShopLocation;
 
 public class TabShopFragment extends Fragment {
@@ -49,9 +47,7 @@ public class TabShopFragment extends Fragment {
         View view = inflater.inflate(R.layout.tab_about_shop, container, false);
 
         if (shopLocation.getPhoneNumber() == null || shopLocation.getWebsite() == null || shopLocation.getOpenHours() == null || shopLocation.getReviews() == null) {
-            RequestHelper requestHelper = new RequestHelper(Constants.TAG_PLACE_DETAILS, mapActivity);
-            requestHelper.setPlaceDetailsUrl(shopLocation);
-            requestHelper.doRequest(shopLocation);
+            mapActivity.googleHelper.updateShopLocations(shopLocation.getId(), shopLocation);
         }
 
         // UI
@@ -59,16 +55,6 @@ public class TabShopFragment extends Fragment {
         final TextView website = (TextView) view.findViewById(R.id.shop_url);
         final Spinner hours = (Spinner) view.findViewById(R.id.shop_hours);
         final ListView reviewsList = (ListView) view.findViewById(R.id.shop_reviews);
-//        final TextView rating = (TextView) view.findViewById(R.id.rating);
-//        final RatingBar ratingBar = (RatingBar) view.findViewById(R.id.rating_stars);
-//        final RelativeLayout ratingContainer = (RelativeLayout) view.findViewById(R.id.rating_container);
-//        if (shopLocation.getRating() != 0) {
-//            rating.setText(String.valueOf(shopLocation.getRating()));
-//            ratingBar.setRating((float) shopLocation.getRating());
-//            ratingContainer.setVisibility(View.VISIBLE);
-//        } else {
-//            ratingContainer.setVisibility(View.GONE);
-//        }
 
         // Setters
         final Handler h = new Handler();

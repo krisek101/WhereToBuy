@@ -94,10 +94,14 @@ public class Shop implements Comparable<Shop> {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj.getClass().isInstance(this)) {
-            Shop obj2 = (Shop) obj;
-            if (this.getName().toLowerCase().equals(obj2.getName().toLowerCase())){
-                return true;
+        if(obj != null) {
+            if (obj.getClass().isInstance(this)) {
+                Shop obj2 = (Shop) obj;
+                if (this.getName().toLowerCase().equals(obj2.getName().toLowerCase())) {
+                    return true;
+                } else {
+                    return false;
+                }
             } else {
                 return false;
             }

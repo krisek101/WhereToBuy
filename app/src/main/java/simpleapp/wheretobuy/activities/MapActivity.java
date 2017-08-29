@@ -24,23 +24,28 @@ import android.support.v4.content.res.ResourcesCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.text.Editable;
+import android.text.Html;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
+import com.arlib.floatingsearchview.FloatingSearchView;
+import com.arlib.floatingsearchview.suggestions.SearchSuggestionsAdapter;
+import com.arlib.floatingsearchview.suggestions.model.SearchSuggestion;
+import com.arlib.floatingsearchview.util.Util;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -62,13 +67,14 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
-import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import pl.droidsonroids.gif.GifDrawable;
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.adapters.MarkerInfoWindowAdapter;
 import simpleapp.wheretobuy.adapters.OffersAdapter;
@@ -79,8 +85,10 @@ import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.fragments.TabOffersFragment;
 import simpleapp.wheretobuy.fragments.TabShopsFragment;
+import simpleapp.wheretobuy.helpers.GoogleHelper;
 import simpleapp.wheretobuy.helpers.ListenerHelper;
-import simpleapp.wheretobuy.helpers.RequestHelper;
+import simpleapp.wheretobuy.helpers.NokautHelper;
+import simpleapp.wheretobuy.helpers.SkapiecHelper;
 import simpleapp.wheretobuy.models.AutoCompleteResult;
 import simpleapp.wheretobuy.models.CustomDialog;
 import simpleapp.wheretobuy.models.Offer;
@@ -99,7 +107,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     private Marker userLocationMarker;
 
     // UI
-    public ClearableAutoCompleteTextView searchText;
+    public FloatingSearchView searchText;
     public ClearableAutoCompleteTextView searchLocation;
     public RelativeLayout footer;
     public boolean footerOpened = false;
@@ -114,16 +122,20 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public List<AutoCompleteResult> autoCompleteResults = new ArrayList<>();
     public List<Offer> offers = new ArrayList<>();
     public List<Shop> shops = new ArrayList<>();
+    public List<AutoCompleteResult> lastAutoCompleteResults = new ArrayList<>();
 
     // Others
     public RequestQueue queue;
-    public RequestHelper requestHelper;
     private TextView errorConnected;
     public boolean finish = false;
-    public boolean loading = false;
     public LatLng tempPosition;
     public boolean getMyLocationButtonClicked = false;
     public AlertDialog changeLocationDialog;
+
+    // Partners
+    public GoogleHelper googleHelper;
+    public NokautHelper nokautHelper;
+    public SkapiecHelper skapiecHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,15 +146,20 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         requestPermissions();
         preLocation();
         initUI();
+        initPartners();
         setListeners();
         initViewPagers();
     }
 
+    private void initPartners() {
+        googleHelper = new GoogleHelper("https://maps.googleapis.com/maps/api/place/", this);
+        nokautHelper = new NokautHelper("http://nokaut.io/api/v2/", this);
+        skapiecHelper = new SkapiecHelper("http://" + Constants.SKAPIEC_LOGIN + ":" + Constants.SKAPIEC_PASS + "@api.skapiec.pl/beta_");
+    }
+
     // initial functions
     private void initUI() {
-        searchText = (ClearableAutoCompleteTextView) findViewById(R.id.search_text);
-        searchText.setClearButton(ResourcesCompat.getDrawable(getResources(), R.drawable.clear, null), false);
-        searchText.setActivity(this);
+        searchText = (FloatingSearchView) findViewById(R.id.search_text);
         queue = Volley.newRequestQueue(this);
         footer = (RelativeLayout) findViewById(R.id.footer);
         footerTop = footer.getY();
@@ -154,6 +171,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         getMyLocationButton = (FloatingActionButton) findViewById(R.id.getMyLocationButton);
         getMyLocation = (TextView) findViewById(R.id.getMyLocation);
         changeLocation = (TextView) findViewById(R.id.setUserLocation);
+        initSearchText();
     }
 
     private void initViewPagers() {
@@ -173,25 +191,20 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     public void setLoading(boolean load) {
         if (load) {
-            try {
-                GifDrawable gifFromResource = new GifDrawable(getResources(), R.drawable.loading);
-                searchText.setLoadingGif(gifFromResource);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            searchText.showProgress();
         } else {
-            searchText.setClearButton(ResourcesCompat.getDrawable(getResources(), R.drawable.clear, null), true);
+            searchText.hideProgress();
         }
     }
 
-    public void showFabOptions(){
+    public void showFabOptions() {
         getMyLocationButtonClicked = true;
         FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) getMyLocation.getLayoutParams();
         FrameLayout.LayoutParams layoutParams2 = (FrameLayout.LayoutParams) changeLocation.getLayoutParams();
 
-        if(footer.getVisibility() == View.VISIBLE) {
-            layoutParams.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 70), UsefulFunctions.getPixelsFromDp(this, 135));
-            layoutParams2.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 90), UsefulFunctions.getPixelsFromDp(this, 95));
+        if (footer.getVisibility() == View.VISIBLE) {
+            layoutParams.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 70), UsefulFunctions.getPixelsFromDp(this, 125));
+            layoutParams2.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 90), UsefulFunctions.getPixelsFromDp(this, 85));
         } else {
             layoutParams.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 70), UsefulFunctions.getPixelsFromDp(this, 80));
             layoutParams2.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 90), UsefulFunctions.getPixelsFromDp(this, 40));
@@ -211,7 +224,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         changeLocation.setClickable(true);
     }
 
-    public void hideFabOptions(){
+    public void hideFabOptions() {
         getMyLocationButtonClicked = false;
         Animation hide_fab = AnimationUtils.loadAnimation(getApplication(), R.anim.location_fab_hide);
 
@@ -224,19 +237,19 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         changeLocation.setClickable(false);
     }
 
-    public void changeUserLocation(){
-        searchText.clearFocus();
+    public void changeUserLocation() {
         final AlertDialog.Builder placeInfoWindow = new AlertDialog.Builder(MapActivity.this);
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         View convertView = inflater.inflate(R.layout.search_location_window, null);
         placeInfoWindow.setView(convertView);
         changeLocationDialog = placeInfoWindow.show();
-        if(changeLocationDialog.getWindow() != null) {
+        if (changeLocationDialog.getWindow() != null) {
             changeLocationDialog.getWindow().getAttributes().verticalMargin = -0.2F;
         }
-        if(changeLocationDialog.getWindow() != null) {
+        if (changeLocationDialog.getWindow() != null) {
             changeLocationDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         }
+
         searchLocation = (ClearableAutoCompleteTextView) convertView.findViewById(R.id.search_location);
         searchLocation.setClearButton(ResourcesCompat.getDrawable(getResources(), R.drawable.clear, null), false);
         searchLocation.addTextChangedListener(new TextWatcher() {
@@ -250,10 +263,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 if (queue != null) {
                     queue.cancelAll(Constants.TAG_SEARCH_ADDRESS_AUTOCOMPLETE);
                 }
-
-                RequestHelper autocompleteRequest = new RequestHelper(Constants.TAG_SEARCH_ADDRESS_AUTOCOMPLETE, MapActivity.this);
-                autocompleteRequest.setAddressAutocompleteUrl(s.toString());
-                autocompleteRequest.doRequest("");
+                googleHelper.showAutoCompleteAddresses(s.toString());
             }
 
             @Override
@@ -265,77 +275,146 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     private void setListeners() {
         ListenerHelper listenerHelper = new ListenerHelper(this);
-        listenerHelper.setListener(findViewById(R.id.search_mic), "click");
         listenerHelper.setListener(getMyLocationButton, "click");
         listenerHelper.setListener(goToShopButton, "click");
         listenerHelper.setListener(footer, "touch");
         listenerHelper.setListener(getMyLocation, "click");
         listenerHelper.setListener(changeLocation, "click");
+    }
 
-        searchText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+    private void initSearchText() {
+        searchText.setDismissFocusOnItemSelection(true);
+        searchText.setOnClearSearchActionListener(new FloatingSearchView.OnClearSearchActionListener() {
             @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                    if(!autoCompleteResults.isEmpty()) {
-                        AutoCompleteResult result = autoCompleteResults.get(0);
-                        queryOffers(result);
-                    }
-                    return true;
+            public void onClearSearchClicked() {
+                clearResults();
+                searchText.hideProgress();
+                hideFabOptions();
+            }
+        });
+
+        searchText.setOnMenuItemClickListener(new FloatingSearchView.OnMenuItemClickListener() {
+            @Override
+            public void onActionMenuItemSelected(MenuItem item) {
+                switch (item.getItemId()) {
+                    case R.id.action_voice:
+                        String language = "pl-PL";
+                        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, language);
+                        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, language);
+                        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, language);
+                        intent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, language);
+                        startActivityForResult(intent, Constants.SPEECH_REQUEST_CODE);
+                        break;
                 }
-                return false;
             }
         });
-        searchText.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-            hardClear();
-            }
-        });
-        searchText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
 
-            }
-
+        searchText.setOnQueryChangeListener(new FloatingSearchView.OnQueryChangeListener() {
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // clear
-                if (!loading) {
-                    if (s.length() > 2) {
-                        clearResults();
-                        finish = false;
-                        String input = s.toString();
-                        if (input.length() > 1) {
-                            if (input.charAt(s.length() - 1) == ' ') {
-                                input = input.substring(0, input.length() - 1);
-                            }
-                        }
-
-                        if (UsefulFunctions.isOnline(MapActivity.this)) {
-                            // update list from Nokaut API
-                            requestHelper = new RequestHelper(Constants.TAG_AUTOCOMPLETE_BY_CATEGORY, MapActivity.this);
-                            requestHelper.setAutocompleteByCategoryUrl(input);
-                            requestHelper.doRequest("");
-                            errorConnected.setVisibility(View.GONE);
-                        } else {
-                            errorConnected.setVisibility(View.VISIBLE);
+            public void onSearchTextChanged(String oldQuery, final String newQuery) {
+                clearResults();
+                setLoading(false);
+                if (lastAutoCompleteResults != null) {
+                    for (AutoCompleteResult autoCompleteResult : lastAutoCompleteResults) {
+                        if (autoCompleteResult.getName().toLowerCase().startsWith(newQuery.toLowerCase())) {
+                            autoCompleteResults.add(autoCompleteResult);
                         }
                     }
+                    searchText.swapSuggestions(autoCompleteResults);
+                }
+                if (newQuery.length() > 2) {
+                    if (UsefulFunctions.isOnline(MapActivity.this)) {
+                        // update list from Nokaut API
+                        nokautHelper.showAutoCompleteCategories(newQuery);
+                        errorConnected.setVisibility(View.GONE);
+                    } else {
+                        errorConnected.setVisibility(View.VISIBLE);
+                    }
+                }
+
+            }
+        });
+
+        searchText.setOnSearchListener(new FloatingSearchView.OnSearchListener() {
+            @Override
+            public void onSuggestionClicked(SearchSuggestion searchSuggestion) {
+                AutoCompleteResult autoCompleteResult = (AutoCompleteResult) searchSuggestion;
+
+                if (lastAutoCompleteResults.contains(autoCompleteResult) && autoCompleteResult.getId().equals("all")) {
+                    setAutocompleteListByInput(autoCompleteResult);
                 } else {
-                    loading = false;
+                    queryOffers(autoCompleteResult);
+                    addLastAutocompleteResult(autoCompleteResult);
                 }
             }
 
             @Override
-            public void afterTextChanged(Editable editable) {
+            public void onSearchAction(String currentQuery) {
+            }
+        });
+
+
+        searchText.setOnBindSuggestionCallback(new SearchSuggestionsAdapter.OnBindSuggestionCallback() {
+            @Override
+            public void onBindSuggestion(View suggestionView, ImageView leftIcon, TextView textView, SearchSuggestion item, int itemPosition) {
+                AutoCompleteResult autoCompleteResult = (AutoCompleteResult) item;
+                if (lastAutoCompleteResults != null) {
+                    if (lastAutoCompleteResults.contains(autoCompleteResult)) {
+                        leftIcon.setImageDrawable(ResourcesCompat.getDrawable(getResources(),
+                                R.drawable.ic_history_black_24dp, null));
+                        Util.setIconColor(leftIcon, Color.parseColor("#000000"));
+                        leftIcon.setAlpha(.36f);
+                    } else {
+                        leftIcon.setAlpha(0.0f);
+                        leftIcon.setImageDrawable(null);
+                    }
+                }
+
+                textView.setTextColor(Color.parseColor("#000000"));
+                String text = autoCompleteResult.getBody().replaceFirst(searchText.getQuery(), "<font color=\"" + "#787878" + "\">" + searchText.getQuery() + "</font>");
+                textView.setText(Html.fromHtml(text));
+            }
+        });
+        searchText.setOnFocusChangeListener(new FloatingSearchView.OnFocusChangeListener() {
+            @Override
+            public void onFocus() {
+                if (lastAutoCompleteResults != null) {
+                    searchText.swapSuggestions(lastAutoCompleteResults);
+                }
+            }
+
+            @Override
+            public void onFocusCleared() {
+
             }
         });
     }
 
-    public void hardClear(){
+    private void setAutocompleteListByInput(AutoCompleteResult autoCompleteResult) {
+        setLoading(true);
+        autoCompleteResults.clear();
+        nokautHelper.getAutoCompleteProducts(autoCompleteResult);
+    }
+
+    private void addLastAutocompleteResult(AutoCompleteResult autoCompleteResult) {
+        if (lastAutoCompleteResults != null) {
+            if (lastAutoCompleteResults.size() == Constants.MAX_AUTOCOMPLETE_RESULTS) {
+                lastAutoCompleteResults.remove(lastAutoCompleteResults.size() - 1);
+            }
+            if(!lastAutoCompleteResults.contains(autoCompleteResult)) {
+                lastAutoCompleteResults.add(autoCompleteResult);
+            }
+            Gson gson = new Gson();
+            String json = gson.toJson(lastAutoCompleteResults);
+            PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext()).edit().putString("LastAutocompleteResults", json).apply();
+        }
+    }
+
+    public void hardClear() {
         goToShopButton.setVisibility(View.GONE);
-        searchText.setText("");
-        if(getMyLocationButtonClicked) {
+        searchText.setSearchText("");
+        if (getMyLocationButtonClicked) {
             hideFabOptions();
         }
         finish = true;
@@ -353,10 +432,11 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         autoCompleteResults.clear();
         offers.clear();
         changeFooterInfo();
+        searchText.clearSuggestions();
 
         // cancel queue
         if (queue != null) {
-            queue.cancelAll(Constants.TAG_AUTOCOMPLETE);
+            queue.cancelAll(Constants.TAG_AUTOCOMPLETE_BY_PRODUCT);
         }
         shops.clear();
     }
@@ -526,7 +606,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 if (mLastLocation != null) {
                     // save old location
                     LatLng oldLocation = new LatLng(-1, -1);
-                    if(userLocation != null) {
+                    if (userLocation != null) {
                         oldLocation = userLocation;
                     }
 
@@ -536,10 +616,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     userLocation = new LatLng(latitude, longitude);
 
                     // if change location is more than 100 meters, then refresh searching
-                    if(oldLocation.latitude != -1) {
+                    if (oldLocation.latitude != -1) {
                         double distance = UsefulFunctions.getDistanceBetween(oldLocation, userLocation);
                         if (distance > 100) {
-                            refreshSearchResults();
+                            refreshShopLocations();
                         }
                     }
 
@@ -622,7 +702,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
-                if(getMyLocationButtonClicked) {
+                if (getMyLocationButtonClicked) {
                     hideFabOptions();
                 }
                 goToShopButton.setVisibility(View.GONE);
@@ -635,13 +715,12 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     // Others
     @Override
-    protected void onActivityResult(int requestCode, int resultCode,
-                                    Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == SPEECH_REQUEST_CODE && resultCode == RESULT_OK) {
-            List<String> results = data.getStringArrayListExtra(
-                    RecognizerIntent.EXTRA_RESULTS);
+            List<String> results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             String spokenText = results.get(0);
-            searchText.setText(spokenText);
+            searchText.setSearchFocused(true);
+            searchText.setSearchText(spokenText);
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
@@ -653,10 +732,13 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             footerOpened = false;
             footerSlider.animate().y(toY).setDuration(100).start();
             footer.animate().y(toY - footer.getHeight()).setDuration(100).start();
-        } else if(getMyLocationButtonClicked) {
+        } else if (getMyLocationButtonClicked) {
             hideFabOptions();
-        } else if(!offers.isEmpty()) {
+        } else if (!offers.isEmpty()) {
             hardClear();
+        } else if (searchText.isFocused()) {
+            searchText.clearSuggestions();
+            searchText.clearFocus();
         } else {
             super.onBackPressed();
         }
@@ -667,6 +749,13 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         if (!PreferenceManager.getDefaultSharedPreferences(this).getString("Latitude", "").isEmpty() && !PreferenceManager.getDefaultSharedPreferences(this).getString("Longitude", "").isEmpty()) {
             userLocation = new LatLng(Double.parseDouble(PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext()).getString("Latitude", "No Latitude Value Stored")), Double.parseDouble(PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext()).getString("Longitude", "No Longitude Value Stored")));
             setUserLocationMarker();
+        }
+        if (!PreferenceManager.getDefaultSharedPreferences(this).getString("LastAutocompleteResults", "").isEmpty()) {
+            Gson gson = new Gson();
+            String jsonPreferences = PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext()).getString("LastAutocompleteResults", "");
+            Type type = new TypeToken<List<AutoCompleteResult>>() {
+            }.getType();
+            lastAutoCompleteResults = gson.fromJson(jsonPreferences, type);
         }
     }
 
@@ -899,49 +988,46 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         clearShopMarkers();
         shops.clear();
 
-        // make query
+        // do query
         if (result.getId().equals("all")) {
-            if (autoCompleteResults.size() >= 18) {
-                requestHelper.setTag(Constants.TAG_MORE_PRODUCTS);
-                requestHelper.setMoreProductsUrl(result.getName(), 20);
-                requestHelper.doRequest(result.getName());
-            } else {
-                for (int i = 0; i < autoCompleteResults.size() - 1; i++) {
-                    if (autoCompleteResults.get(i).getId().equals("all")) {
-                        autoCompleteResults.remove(i);
-                        autoCompleteResults.remove(i);
-                    }
-                }
-                for (AutoCompleteResult r : autoCompleteResults) {
-                    requestHelper.setTag(Constants.TAG_OFFERS);
-                    requestHelper.setOffersUrl(r);
-                    requestHelper.doRequest("");
-                }
-            }
+            nokautHelper.getMoreProducts(result.getName(), 20);
         } else {
             AutoCompleteResult r;
             r = result;
             autoCompleteResults.clear();
             autoCompleteResults.add(r);
-            requestHelper.setTag(Constants.TAG_OFFERS);
-            requestHelper.setOffersUrl(result);
-            requestHelper.doRequest("");
+            nokautHelper.getOffers(result, true);
         }
 
-        // search field
-        loading = true;
-        searchText.setText(result.getName());
-        searchText.dismissDropDown();
         hideKeyboard();
 
         // loading start/stop
         setLoading(true);
     }
 
-    public void refreshSearchResults(){
-        if(!autoCompleteResults.isEmpty()) {
-            AutoCompleteResult autoCompleteResult = autoCompleteResults.get(0);
-            queryOffers(autoCompleteResult);
+    public void refreshShopLocations() {
+        if (!shops.isEmpty()) {
+            List<Shop> goodShops = new ArrayList<>(shops);
+            clearShopMarkers();
+            for (Shop shop : shops) {
+                for (int p = 0; p < Constants.BLACK_LIST_SHOPS.length; p++) {
+                    if (shop.getName().toLowerCase().equals(Constants.BLACK_LIST_SHOPS[p].toLowerCase())) {
+                        goodShops.add(shop);
+                    }
+                }
+                shop.getLocations().clear();
+                shop.setBestDistance(-1);
+            }
+
+            if (!goodShops.isEmpty()) {
+                setLoading(true);
+                boolean finish;
+                for (int i = 0; i < goodShops.size() - 1; i++) {
+                    Shop shop = goodShops.get(i);
+                    finish = i == goodShops.size() - 2;
+                    nokautHelper.setShopLocations(shop, finish);
+                }
+            }
         }
     }
 
@@ -950,9 +1036,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         for (Shop shop : shops) {
             if (!shop.getLocations().isEmpty()) {
                 for (ShopLocation shopLocation : shop.getLocations()) {
-                    if (shopLocation.getMarker() != null) {
-                        shopLocation.getMarker().remove();
-                    }
+                    shopLocation.getMarker().remove();
+                    shopLocation.setMarker(null);
                 }
             }
         }

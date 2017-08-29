@@ -17,8 +17,6 @@ import java.util.Map;
 
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
-import simpleapp.wheretobuy.constants.Constants;
-import simpleapp.wheretobuy.helpers.RequestHelper;
 
 public class AutocompleteAddressesAdapter extends ArrayAdapter<String> {
 
@@ -55,9 +53,7 @@ public class AutocompleteAddressesAdapter extends ArrayAdapter<String> {
             @Override
             public void onClick(View view) {
                 // set new search position
-                RequestHelper placeDetailsRequest = new RequestHelper(Constants.TAG_PLACE_DETAILS, mapActivity);
-                placeDetailsRequest.setPlaceDetailsUrl(id);
-                placeDetailsRequest.doRequest("");
+                mapActivity.googleHelper.changeUserLocation(id);
 
                 mapActivity.searchLocation.setText(result);
                 mapActivity.searchLocation.dismissDropDown();

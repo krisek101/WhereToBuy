@@ -3,15 +3,12 @@ package simpleapp.wheretobuy.helpers;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
-import android.speech.RecognizerIntent;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
-import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
 
 public class ListenerHelper {
@@ -41,15 +38,6 @@ public class ListenerHelper {
             @Override
             public void onClick(View view) {
                 switch (id) {
-                    case R.id.search_mic:
-                        String language = "pl-PL";
-                        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-                        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, language);
-                        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, language);
-                        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, language);
-                        intent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, language);
-                        parentActivity.startActivityForResult(intent, Constants.SPEECH_REQUEST_CODE);
-                        break;
                     case R.id.getMyLocationButton:
                         if (parentActivity.getMyLocationButtonClicked) {
                             parentActivity.hideFabOptions();
@@ -58,18 +46,9 @@ public class ListenerHelper {
                         }
                         break;
                     case R.id.goToShopButton:
-                        Uri gmmIntentUri = Uri.parse("google.navigation:q=" + parentActivity.tempPosition.latitude + "," + parentActivity.tempPosition.longitude);
-                        Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
-                        mapIntent.setPackage("com.google.android.apps.maps");
-                        try {
-                            parentActivity.startActivity(mapIntent);
-                        } catch (Exception e) {
-                            gmmIntentUri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=" + parentActivity.tempPosition.latitude + "," + parentActivity.tempPosition.longitude);
-                            Log.v("ADRES", gmmIntentUri.toString());
-                            Intent callIntent = new Intent(Intent.ACTION_VIEW);
-                            callIntent.setData(gmmIntentUri);
-                            parentActivity.startActivity(callIntent);
-                        }
+                        Uri gmmIntentUri = Uri.parse("https://www.google.com/maps/dir/?api=1&origin=" + parentActivity.userLocation.latitude + "," + parentActivity.userLocation.longitude + "&destination=" + parentActivity.tempPosition.latitude + "," + parentActivity.tempPosition.longitude);
+                        Intent callIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
+                        parentActivity.startActivity(callIntent);
                         break;
                     case R.id.getMyLocation:
                         parentActivity.checkUsersSettingGPS();
@@ -116,12 +95,11 @@ public class ListenerHelper {
                                     y = motionEvent.getRawY() - view.getY() - view.getHeight();
                                     break;
                                 case MotionEvent.ACTION_MOVE:
-                                    if (motionEvent.getRawY() - y < parentActivity.footerTop + viewElement.getHeight()) {
+                                    if (viewElement.getY() + viewElement.getHeight() < parentActivity.footerTop + viewElement.getHeight()) {
                                         toY = parentActivity.footerTop + viewElement.getHeight();
                                     } else {
                                         toY = motionEvent.getRawY() - y;
                                     }
-
                                     parentActivity.footerSlider.animate().y(toY).setDuration(0).start();
                                     view.animate().y(toY - viewElement.getHeight()).setDuration(0).start();
                                     break;

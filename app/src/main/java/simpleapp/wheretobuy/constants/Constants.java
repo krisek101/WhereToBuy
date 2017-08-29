@@ -9,7 +9,7 @@ public class Constants {
     public static final int SPEECH_REQUEST_CODE = 1;
 
     // Tags
-    public static final String TAG_AUTOCOMPLETE = "TAG_AUTOCOMPLETE";
+    public static final String TAG_AUTOCOMPLETE_BY_PRODUCT = "TAG_AUTOCOMPLETE_BY_PRODUCT";
     public static final String TAG_AUTOCOMPLETE_BY_CATEGORY = "TAG_AUTOCOMPLETE_BY_CATEGORY";
     public static final String TAG_OFFERS = "TAG_OFFERS";
     public static final String TAG_PLACES = "TAG_PLACES";
@@ -19,7 +19,9 @@ public class Constants {
 
     // Tokens and Keys
     public static final String NOKAUT_TOKEN = "1/c1d3e6f5f27737fe2cb0dfd5b0046743ae4297da1c446fbe1219b8db7475367c";
-    public static final String WEB_API_GOOGLE_KEY = "AIzaSyA_C2NPat715q0hNN_S_ltWo2e1agdP1jI";
+//    public static final String WEB_API_GOOGLE_KEY = "AIzaSyA_C2NPat715q0hNN_S_ltWo2e1agdP1jI";
+    public static final String WEB_API_GOOGLE_KEY = "AIzaSyDflSpLotdTPuGtyeZEPNHHNZGVDsft040";
+
 
     // Constants
     public static final int SPLASH_TIME = 500;
@@ -32,4 +34,10 @@ public class Constants {
             "Fashally.com - Twoje gadżety", "Medical Depot", "Mercateo Polska"};
     public static final String SORT_BY_PRICE = "SORT_BY_PRICE";
     public static final String SORT_BY_DISTANCE = "SORT_BY_DISTANCE";
+    public static final int MAX_AUTOCOMPLETE_RESULTS = 7;
+    public static final int SEARCH_RADIUS = 10000;
+
+    // Skapiec
+    public static final String SKAPIEC_LOGIN = "k.gustalik@gmail.com";
+    public static final String SKAPIEC_PASS = "abcde4321";
 }
