@@ -20,6 +20,7 @@ import java.util.List;
 
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
+import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.models.Offer;
 import simpleapp.wheretobuy.models.Shop;
@@ -67,13 +68,26 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
 
         final Shop shop = shops.get(position);
         final List<Offer> offersFromShop = getOffersFromShop(shop);
-        Collections.sort(offersFromShop);
-        double priceMin = offersFromShop.get(0).getPrice();
-        double priceMax = offersFromShop.get(offersFromShop.size() - 1).getPrice();
+        double priceMin = 0, priceMax = 0;
+        if (!offersFromShop.isEmpty()) {
+            Collections.sort(offersFromShop);
+            priceMin = offersFromShop.get(0).getPrice();
+            priceMax = offersFromShop.get(offersFromShop.size() - 1).getPrice();
+        }
+//        shop.setMinPrice(priceMin);
 
         // Setters
-        String logoUrl = "http://offers.gallery" + shop.getLogoUrl();
-        Picasso.with(context).load(logoUrl).into(holder.photo);
+        String logoUrl;
+        if (shop.getLogoUrl() != null) {
+            if (shop.getType().equals(Constants.OFFER_NOKAUT)) {
+                logoUrl = "http://offers.gallery" + shop.getLogoUrl();
+            } else {
+                logoUrl = shop.getLogoUrl();
+            }
+            Picasso.with(context).load(logoUrl).into(holder.photo);
+        } else {
+            holder.photo.setImageResource(R.drawable.no_photo);
+        }
         holder.shopNameText.setText(shop.getName());
         holder.counter.setText("Liczba ofert: " + offersFromShop.size());
         if (priceMin == priceMax) {

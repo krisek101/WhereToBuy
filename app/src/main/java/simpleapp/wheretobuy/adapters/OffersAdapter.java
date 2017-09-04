@@ -19,11 +19,12 @@ import com.squareup.picasso.Picasso;
 import java.util.List;
 
 import simpleapp.wheretobuy.R;
+import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.helpers.PhotoHelper;
 import simpleapp.wheretobuy.models.Offer;
 
-public class OffersAdapter extends ArrayAdapter<Offer>{
+public class OffersAdapter extends ArrayAdapter<Offer> {
 
     private List<Offer> offers;
     private Context context;
@@ -54,7 +55,7 @@ public class OffersAdapter extends ArrayAdapter<Offer>{
 
         title.setText(offer.getTitle());
         price.setText(UsefulFunctions.getPriceFormat(offer.getPrice()));
-        switch (offer.getAvailability()){
+        switch (offer.getAvailability()) {
             case 0:
                 availability.setText(R.string.available);
                 availability.setTextColor(Color.parseColor("#FF39762C"));
@@ -76,13 +77,20 @@ public class OffersAdapter extends ArrayAdapter<Offer>{
                 availability.setTextColor(Color.parseColor("#FFA3701E"));
                 break;
         }
-
-        PhotoHelper photoHelper = new PhotoHelper(offer.getPhotoId(), offer.getTitle(), "130x130");
-        String offerUrl = photoHelper.getPhotoUrl();
-        Picasso.with(context).load(offerUrl).into(photo);
-        switch(type){
+        String offerUrl;
+        if (offer.getType().equals(Constants.OFFER_NOKAUT)) {
+            PhotoHelper photoHelper = new PhotoHelper(offer.getPhotoId(), offer.getTitle(), "130x130");
+            offerUrl = photoHelper.getPhotoUrl();
+            Picasso.with(context).load(offerUrl).into(photo);
+        } else if (offer.getType().equals(Constants.OFFER_SKAPIEC)) {
+            if (offer.getPhotoId() != null) {
+                offerUrl = offer.getPhotoId();
+                Picasso.with(context).load(offerUrl).into(photo);
+            }
+        }
+        switch (type) {
             case "offer_footer":
-                if(offer.getShop().getBestDistance() != -1 && offer.getShop().getBestDistance() != 1000000f){
+                if (offer.getShop().getBestDistance() != -1 && offer.getShop().getBestDistance() != 1000000f) {
                     shopDistance.setVisibility(View.VISIBLE);
                     String distance = UsefulFunctions.getDistanceKilometersFormat(offer.getShop().getBestDistance());
                     shopDistance.setText(distance);
@@ -101,7 +109,11 @@ public class OffersAdapter extends ArrayAdapter<Offer>{
             @Override
             public void onClick(View view) {
                 Intent callIntent = new Intent(Intent.ACTION_VIEW);
-                callIntent.setData(Uri.parse("http://nokaut.click" + offer.getClickUrl()));
+                if (offer.getType().equals(Constants.OFFER_NOKAUT)) {
+                    callIntent.setData(Uri.parse("http://nokaut.click" + offer.getClickUrl()));
+                } else if (offer.getType().equals(Constants.OFFER_SKAPIEC)) {
+                    callIntent.setData(Uri.parse(offer.getClickUrl() + "#from107726"));
+                }
                 context.startActivity(callIntent);
             }
         });

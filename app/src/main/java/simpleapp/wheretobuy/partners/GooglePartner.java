@@ -1,8 +1,9 @@
-package simpleapp.wheretobuy.helpers;
+package simpleapp.wheretobuy.partners;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
@@ -35,29 +36,32 @@ import simpleapp.wheretobuy.models.Offer;
 import simpleapp.wheretobuy.models.Shop;
 import simpleapp.wheretobuy.models.ShopLocation;
 
-public class GoogleHelper {
+public class GooglePartner {
 
     private String startLink;
     private MapActivity mapActivity;
 
-    public GoogleHelper(String startLink, MapActivity mapActivity) {
+    public GooglePartner(String startLink, MapActivity mapActivity) {
         this.startLink = startLink;
         this.mapActivity = mapActivity;
     }
 
     // method
-    void searchNearbyShops(Shop shop, int radius, boolean finish){
+    void searchNearbyShops(Shop shop, int radius, boolean finish) {
         String url = getNearbyShopsUrl(shop.getName(), radius);
         requestNearbyShops(url, "NEARBY_SHOPS", shop, finish);
     }
+
     public void changeUserLocation(String id) {
         String url = getPlaceDetailsUrl(id);
         requestUserLocationDetails(url, Constants.TAG_PLACE_DETAILS);
     }
+
     public void updateShopLocations(String id, ShopLocation shopLocation) {
         String url = getPlaceDetailsUrl(id);
         requestShopDetails(url, Constants.TAG_PLACE_DETAILS, shopLocation);
     }
+
     public void showAutoCompleteAddresses(String s) {
         String url = getAddressAutocompleteUrl(s);
         requestAutoCompleteAddresses(url, Constants.TAG_SEARCH_ADDRESS_AUTOCOMPLETE);
@@ -77,9 +81,11 @@ public class GoogleHelper {
         }
         return urlString.toString();
     }
+
     private String getPlaceDetailsUrl(String placeId) {
         return "https://maps.googleapis.com/maps/api/place/details/json?language=pl&placeid=" + placeId + "&key=" + Constants.WEB_API_GOOGLE_KEY;
     }
+
     private String getAddressAutocompleteUrl(String input) {
         StringBuilder urlString = new StringBuilder();
         urlString.append("https://maps.googleapis.com/maps/api/place/autocomplete/json");
@@ -95,7 +101,8 @@ public class GoogleHelper {
     }
 
     // request
-    private void requestNearbyShops(String url, String tag, final Shop shop, final boolean finish){
+    private void requestNearbyShops(String url, String tag, final Shop shop, final boolean finish) {
+        Log.i("GOOGLE", url);
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
@@ -113,7 +120,8 @@ public class GoogleHelper {
         jsonObjRequest.setTag(tag);
         mapActivity.queue.add(jsonObjRequest);
     }
-    private void requestUserLocationDetails(String url, String tag){
+
+    private void requestUserLocationDetails(String url, String tag) {
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
@@ -131,7 +139,8 @@ public class GoogleHelper {
         jsonObjRequest.setTag(tag);
         mapActivity.queue.add(jsonObjRequest);
     }
-    private void requestShopDetails(String url, String tag, final ShopLocation shopLocation){
+
+    private void requestShopDetails(String url, String tag, final ShopLocation shopLocation) {
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
@@ -149,7 +158,8 @@ public class GoogleHelper {
         jsonObjRequest.setTag(tag);
         mapActivity.queue.add(jsonObjRequest);
     }
-    private void requestAutoCompleteAddresses(String url, String tag){
+
+    private void requestAutoCompleteAddresses(String url, String tag) {
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
@@ -168,7 +178,7 @@ public class GoogleHelper {
         mapActivity.queue.add(jsonObjRequest);
     }
 
-    // on response
+    // response
     private void onResponseNearbyShops(JSONObject response, Shop shop, boolean finish) throws JSONException {
         JSONArray ja = response.getJSONArray("results");
         if (ja.length() != 0) {
@@ -182,7 +192,7 @@ public class GoogleHelper {
                 JSONObject c = ja.getJSONObject(i);
                 if (c.has("name")) {
                     name = c.getString("name");
-                    if (name.toLowerCase().contains(shop.getName().toLowerCase())) {
+                    if (name.toLowerCase().replaceAll("\\s+", "").contains(shop.getName().toLowerCase().replaceAll("\\s+", "").replaceAll(".pl",""))) {
                         JSONObject locationJSON = c.getJSONObject("geometry").getJSONObject("location");
                         location = new LatLng(locationJSON.getDouble("lat"), locationJSON.getDouble("lng"));
 
@@ -200,12 +210,12 @@ public class GoogleHelper {
 
                         // add marker to map
                         Bitmap icon;
-                        if(openNow) {
+                        if (openNow) {
                             icon = BitmapFactory.decodeResource(mapActivity.getResources(), R.drawable.shop_marker_open);
                         } else {
                             icon = BitmapFactory.decodeResource(mapActivity.getResources(), R.drawable.shop_marker_closed);
                         }
-                        Bitmap bitmap = Bitmap.createScaledBitmap(icon, (int)Math.round(icon.getWidth()*0.2), (int)Math.round(icon.getHeight()*0.2), false);
+                        Bitmap bitmap = Bitmap.createScaledBitmap(icon, (int) Math.round(icon.getWidth() * 0.2), (int) Math.round(icon.getHeight() * 0.2), false);
                         Marker marker = mapActivity.mMap.addMarker(new MarkerOptions().position(location).title(shop.getName()).icon(BitmapDescriptorFactory.fromBitmap(bitmap)));
                         shopLocation = new ShopLocation(placeId, name, location, marker, UsefulFunctions.getDistanceBetween(location, mapActivity.userLocation), rating, openNow);
                         shopLocation.setAddress(vicinity);
@@ -240,7 +250,7 @@ public class GoogleHelper {
             builder.include(mapActivity.userLocation);
             LatLngBounds bounds = builder.build();
             CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, 100);
-            if(has) {
+            if (has) {
                 mapActivity.mMap.animateCamera(cu);
             }
         }
@@ -248,6 +258,7 @@ public class GoogleHelper {
         // update footer
         mapActivity.changeFooterInfo();
     }
+
     private void onResponsePlaceDetails(JSONObject response) throws JSONException {
         mapActivity.changeLocationDialog.dismiss();
         JSONObject positionObject = response.getJSONObject("result").getJSONObject("geometry").getJSONObject("location");
@@ -257,6 +268,7 @@ public class GoogleHelper {
             mapActivity.refreshShopLocations();
         }
     }
+
     private void onResponseShopDetails(JSONObject response, ShopLocation shopLocation) throws JSONException {
         if (response.has("result")) {
             JSONObject placeInfo = response.getJSONObject("result");
@@ -289,6 +301,7 @@ public class GoogleHelper {
             }
         }
     }
+
     private void onResponseAutoCompleteAddresses(JSONObject response) throws JSONException {
         JSONArray ja = response.getJSONArray("predictions");
         Map<String, String> autocompleteAddresses = new HashMap<>();

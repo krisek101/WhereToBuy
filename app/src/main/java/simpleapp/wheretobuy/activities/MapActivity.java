@@ -85,15 +85,15 @@ import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.fragments.TabOffersFragment;
 import simpleapp.wheretobuy.fragments.TabShopsFragment;
-import simpleapp.wheretobuy.helpers.GoogleHelper;
 import simpleapp.wheretobuy.helpers.ListenerHelper;
-import simpleapp.wheretobuy.helpers.NokautHelper;
-import simpleapp.wheretobuy.helpers.SkapiecHelper;
 import simpleapp.wheretobuy.models.AutoCompleteResult;
 import simpleapp.wheretobuy.models.CustomDialog;
 import simpleapp.wheretobuy.models.Offer;
 import simpleapp.wheretobuy.models.Shop;
 import simpleapp.wheretobuy.models.ShopLocation;
+import simpleapp.wheretobuy.partners.GooglePartner;
+import simpleapp.wheretobuy.partners.NokautPartner;
+import simpleapp.wheretobuy.partners.SkapiecPartner;
 
 import static simpleapp.wheretobuy.constants.Constants.SPEECH_REQUEST_CODE;
 
@@ -131,11 +131,13 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public LatLng tempPosition;
     public boolean getMyLocationButtonClicked = false;
     public AlertDialog changeLocationDialog;
+    public ShopsAdapter shopsAdapter;
+    public ListView shopsListView;
 
     // Partners
-    public GoogleHelper googleHelper;
-    public NokautHelper nokautHelper;
-    public SkapiecHelper skapiecHelper;
+    public GooglePartner googleHelper;
+    public NokautPartner nokautHelper;
+    public SkapiecPartner skapiecHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,9 +154,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     private void initPartners() {
-        googleHelper = new GoogleHelper("https://maps.googleapis.com/maps/api/place/", this);
-        nokautHelper = new NokautHelper("http://nokaut.io/api/v2/", this);
-        skapiecHelper = new SkapiecHelper("http://" + Constants.SKAPIEC_LOGIN + ":" + Constants.SKAPIEC_PASS + "@api.skapiec.pl/beta_");
+        googleHelper = new GooglePartner("https://maps.googleapis.com/maps/api/place/", this);
+        nokautHelper = new NokautPartner("http://nokaut.io/api/v2/", this);
+        skapiecHelper = new SkapiecPartner("http://api.skapiec.pl/beta_", this);
     }
 
     // initial functions
@@ -326,7 +328,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 if (newQuery.length() > 2) {
                     if (UsefulFunctions.isOnline(MapActivity.this)) {
                         // update list from Nokaut API
-                        nokautHelper.showAutoCompleteCategories(newQuery);
+//                        nokautHelper.showAutoCompleteCategories(newQuery);
+                        nokautHelper.showAutoCompleteProducts(newQuery);
                         errorConnected.setVisibility(View.GONE);
                     } else {
                         errorConnected.setVisibility(View.VISIBLE);
@@ -340,10 +343,11 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             @Override
             public void onSuggestionClicked(SearchSuggestion searchSuggestion) {
                 AutoCompleteResult autoCompleteResult = (AutoCompleteResult) searchSuggestion;
-
                 if (lastAutoCompleteResults.contains(autoCompleteResult) && autoCompleteResult.getId().equals("all")) {
                     setAutocompleteListByInput(autoCompleteResult);
+                    skapiecHelper.searchMostCommonCategory(autoCompleteResult.getName());
                 } else {
+                    skapiecHelper.searchMostCommonCategory(autoCompleteResult.getName());
                     queryOffers(autoCompleteResult);
                     addLastAutocompleteResult(autoCompleteResult);
                 }
@@ -370,7 +374,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                         leftIcon.setImageDrawable(null);
                     }
                 }
-
                 textView.setTextColor(Color.parseColor("#000000"));
                 String text = autoCompleteResult.getBody().replaceFirst(searchText.getQuery(), "<font color=\"" + "#787878" + "\">" + searchText.getQuery() + "</font>");
                 textView.setText(Html.fromHtml(text));
@@ -402,7 +405,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             if (lastAutoCompleteResults.size() == Constants.MAX_AUTOCOMPLETE_RESULTS) {
                 lastAutoCompleteResults.remove(lastAutoCompleteResults.size() - 1);
             }
-            if(!lastAutoCompleteResults.contains(autoCompleteResult)) {
+            if (!lastAutoCompleteResults.contains(autoCompleteResult)) {
                 lastAutoCompleteResults.add(autoCompleteResult);
             }
             Gson gson = new Gson();
@@ -783,7 +786,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             // logic
             Collections.sort(offers);
             final OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
-            final ShopsAdapter shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops, this);
+            shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops, this);
             Offer bestOffer = offers.get(0);
             int nearMe = 0, outside;
             for (Offer offer : offers) {
@@ -803,7 +806,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             bestPriceText.setTypeface(null, Typeface.BOLD);
 
             // UI - footer shops
-            final ListView shopsListView = (ListView) findViewById(R.id.footer_shops);
+            shopsListView = (ListView) findViewById(R.id.footer_shops);
             final Button sortShopsByPriceView = (Button) findViewById(R.id.sort_shops_by_price);
             final Button sortShopsByDistanceView = (Button) findViewById(R.id.sort_shops_by_distance);
             final String[] sortShopsStatus = {Constants.SORT_BY_DISTANCE};
@@ -848,7 +851,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     if (sortShopsStatus[0].equals(Constants.SORT_BY_DISTANCE)) {
                         changeFilterClicked(1, sortShopsByDistanceView, sortShopsByPriceView);
                         sortShopsStatus[0] = Constants.SORT_BY_PRICE;
-                        sortShops(sortShopsStatus[0], shopsAdapter, shopsListView);
+                        sortShops(sortShopsStatus[0]);
                     }
                 }
             });
@@ -858,7 +861,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     if (sortShopsStatus[0].equals(Constants.SORT_BY_PRICE)) {
                         changeFilterClicked(0, sortShopsByDistanceView, sortShopsByPriceView);
                         sortShopsStatus[0] = Constants.SORT_BY_DISTANCE;
-                        sortShops(sortShopsStatus[0], shopsAdapter, shopsListView);
+                        sortShops(sortShopsStatus[0]);
                     }
                 }
             });
@@ -869,7 +872,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             outsideText.setText(String.valueOf(outside));
 
             // Shops
-            sortShops(sortShopsStatus[0], shopsAdapter, shopsListView);
+            sortShops(sortShopsStatus[0]);
 
             // Offers
             sortOffers(sortOffersStatus[0], offersAdapter, offersListView);
@@ -917,26 +920,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         offersAdapter.notifyDataSetChanged();
     }
 
-    private void sortShops(String sortType, ShopsAdapter shopsAdapter, ListView shopsListView) {
+    private void sortShops(String sortType) {
         switch (sortType) {
             case Constants.SORT_BY_PRICE:
-                for (Shop shop : shops) {
-                    final List<Offer> offersFromShop = getOffersByShop(shop);
-                    shop.setMinPrice(offersFromShop.get(0).getPrice());
-                }
-                boolean war = true;
-                while (war) {
-                    war = false;
-                    for (int i = 0; i < shops.size() - 1; i++) {
-                        Shop tempShop;
-                        if (shops.get(i).getMinPrice() > shops.get(i + 1).getMinPrice()) {
-                            tempShop = shops.get(i);
-                            shops.set(i, shops.get(i + 1));
-                            shops.set(i + 1, tempShop);
-                            war = true;
-                        }
-                    }
-                }
+                quickSortShops(0, shops.size() - 1);
                 break;
             case Constants.SORT_BY_DISTANCE:
                 List<Shop> shopsOnMap = new ArrayList<>();
@@ -957,6 +944,35 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         shopsAdapter.notifyDataSetChanged();
         shopsListView.setAdapter(shopsAdapter);
         shopsListView.requestLayout();
+    }
+
+    private void quickSortShops(int low, int high) {
+        int i = low, j = high;
+        Shop pivot = shops.get(low + (high - low) / 2);
+        while (i <= j) {
+            while (shops.get(i).getMinPrice() < pivot.getMinPrice()) {
+                i++;
+            }
+            while (shops.get(j).getMinPrice() > pivot.getMinPrice()) {
+                j--;
+            }
+            if (i <= j) {
+                exchange(i, j);
+                i++;
+                j--;
+            }
+        }
+        // Recursion
+        if (low < j)
+            quickSortShops(low, j);
+        if (i < high)
+            quickSortShops(i, high);
+    }
+
+    private void exchange(int i, int j) {
+        Shop temp = shops.get(i);
+        shops.set(i, shops.get(j));
+        shops.set(j, temp);
     }
 
     private void changeFilterClicked(int pos, TextView textView1, TextView textView2) {
@@ -988,7 +1004,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         clearShopMarkers();
         shops.clear();
 
-        // do query
+        // do query - nokaut
         if (result.getId().equals("all")) {
             nokautHelper.getMoreProducts(result.getName(), 20);
         } else {
@@ -996,9 +1012,12 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             r = result;
             autoCompleteResults.clear();
             autoCompleteResults.add(r);
-            nokautHelper.getOffers(result, true);
+            if (!result.getType().equals(Constants.OFFER_SKAPIEC)) {
+                nokautHelper.getOffers(result, true);
+            }
         }
 
+        // hide keyboard
         hideKeyboard();
 
         // loading start/stop
@@ -1012,7 +1031,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             for (Shop shop : shops) {
                 for (int p = 0; p < Constants.BLACK_LIST_SHOPS.length; p++) {
                     if (shop.getName().toLowerCase().equals(Constants.BLACK_LIST_SHOPS[p].toLowerCase())) {
-                        goodShops.add(shop);
+                        goodShops.remove(shop);
                     }
                 }
                 shop.getLocations().clear();

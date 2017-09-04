@@ -16,28 +16,33 @@ public class Constants {
     public static final String TAG_PLACE_DETAILS = "TAG_PLACE_DETAILS";
     public static final String TAG_MORE_PRODUCTS = "TAG_MORE_PRODUCTS";
     public static final String TAG_SEARCH_ADDRESS_AUTOCOMPLETE = "TAG_SEARCH_ADDRESS_AUTOCOMPLETE";
+    public static final String TAG_PRODUCTS_SKAPIEC = "TAG_PRODUCTS_SKAPIEC";
+    public static final String TAG_OFFERS_SKAPIEC = "TAG_OFFERS_SKAPIEC";
+    public static final String OFFER_NOKAUT = "OFFER_NOKAUT";
 
     // Tokens and Keys
     public static final String NOKAUT_TOKEN = "1/c1d3e6f5f27737fe2cb0dfd5b0046743ae4297da1c446fbe1219b8db7475367c";
-//    public static final String WEB_API_GOOGLE_KEY = "AIzaSyA_C2NPat715q0hNN_S_ltWo2e1agdP1jI";
-    public static final String WEB_API_GOOGLE_KEY = "AIzaSyDflSpLotdTPuGtyeZEPNHHNZGVDsft040";
+    public static final String WEB_API_GOOGLE_KEY = "AIzaSyA_C2NPat715q0hNN_S_ltWo2e1agdP1jI";
+//    public static final String WEB_API_GOOGLE_KEY = "AIzaSyDflSpLotdTPuGtyeZEPNHHNZGVDsft040";
 
 
     // Constants
     public static final int SPLASH_TIME = 500;
     public static final String UNKNOWN_ADDRESS = "Adres nieznany";
-    public static final String[] BLACK_LIST_SHOPS = {"mall.pl", "sklep bielsko-biała", "twójlombard.pl", "Bauer Fitness", "SKLEP SPORTOWY DWS-SPORT.PL",
+    public static final String[] BLACK_LIST_SHOPS = {"Mall.pl", "sklep bielsko-biała", "twójlombard.pl", "Bauer Fitness", "SKLEP SPORTOWY DWS-SPORT.PL",
             "TopSlim", "KokiskashopPL", "ATHLETIC24.PL", "electronic-star", "przydomu.pl", "Makstor", "Sklep Puregreen - najlepsze wyciskarki do soków.", "Fit and Strong - Sklep Sportowy", "vidaXL",
             "SPORT-SHOP.PL", "EUKASA.pl", "x-tronik", "Malanet", "BESTCENA.PL", "Siglo.pl", "MegaKsiazki.pl", "Libristo.pl", "Gigant.pl", "royalpoint.pl", "niezlacena.pl", "InBook.pl", "www.cud.pl",
             "ErgoExpert.pl", "ExitoDesign", "Multilu.eu", "softx.pl", "alget.pl", "merlin.pl", "Akumulatorki.com.pl", "Spy007.pl", "Maxczysto - Profesjonalne Środki czystości", "SHOWERWIS-Profesjonalna obsługa inwestycji",
             "Picco.pl", "niszczarki-biurowe.pl AUTORYZOWANY SKLEP KOBRA HSM", "XXLgastro.pl", "Toyka Poland Leader Branży", "Szybkikoszyk.pl", "Balmea.pl", "zaopatrzenieBHP.pl", "Pasaż Biurowy",
-            "Fashally.com - Twoje gadżety", "Medical Depot", "Mercateo Polska"};
+            "Fashally.com - Twoje gadżety", "Medical Depot", "Mercateo Polska", "ale.pl", "www.al.to", "Amazon.de", "Zadowolenie.pl", "winmar.pl", "marcusfoto.pl"};
     public static final String SORT_BY_PRICE = "SORT_BY_PRICE";
     public static final String SORT_BY_DISTANCE = "SORT_BY_DISTANCE";
     public static final int MAX_AUTOCOMPLETE_RESULTS = 7;
     public static final int SEARCH_RADIUS = 10000;
+    public static final int[] DEPARTMENTS_IDS_SKAPIEC = {0, 1, 2, 3, 4, 5, 6, 8, 10, 11, 12, 13, 14, 15, 16, 18, 19, 21, 22, 23, 24, 25, 28, 29};
 
     // Skapiec
     public static final String SKAPIEC_LOGIN = "k.gustalik@gmail.com";
     public static final String SKAPIEC_PASS = "abcde4321";
+    public static final String OFFER_SKAPIEC = "OFFER_SKAPIEC";
 }

@@ -14,12 +14,20 @@ public class Shop implements Comparable<Shop> {
     private String logoUrl;
     private List<ShopLocation> locations = new ArrayList<>();
     private double bestDistance = -1;
-    private double minPrice = -1;
+    private double minPrice = 100000000;
+    private String type;
 
-    public Shop(String name, String url, String logoUrl, String id) {
+    public Shop(String type, String name, String url, String logoUrl, String id) {
+        this.type = type;
         this.name = name;
         this.url = url;
         this.logoUrl = logoUrl;
+        this.id = id;
+    }
+
+    public Shop(String type, String name, String id) {
+        this.type = type;
+        this.name = name;
         this.id = id;
     }
 
@@ -63,6 +71,14 @@ public class Shop implements Comparable<Shop> {
         this.locations = locations;
     }
 
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
     public double getBestDistance() {
         return bestDistance;
     }
@@ -97,7 +113,7 @@ public class Shop implements Comparable<Shop> {
         if(obj != null) {
             if (obj.getClass().isInstance(this)) {
                 Shop obj2 = (Shop) obj;
-                if (this.getName().toLowerCase().equals(obj2.getName().toLowerCase())) {
+                if (this.getName().toLowerCase().replaceAll(".pl", "").replaceAll("\\s+", "").equals(obj2.getName().toLowerCase().replaceAll(".pl", "").replaceAll("\\s+", ""))) {
                     return true;
                 } else {
                     return false;

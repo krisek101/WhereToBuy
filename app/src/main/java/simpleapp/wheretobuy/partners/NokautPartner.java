@@ -1,4 +1,4 @@
-package simpleapp.wheretobuy.helpers;
+package simpleapp.wheretobuy.partners;
 
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -30,13 +30,13 @@ import simpleapp.wheretobuy.models.AutoCompleteResult;
 import simpleapp.wheretobuy.models.Offer;
 import simpleapp.wheretobuy.models.Shop;
 
-public class NokautHelper {
+public class NokautPartner {
 
     private String startLink;
     private MapActivity mapActivity;
     private int offset = 0;
 
-    public NokautHelper(String startLink, MapActivity mapActivity) {
+    public NokautPartner(String startLink, MapActivity mapActivity) {
         this.startLink = startLink;
         this.mapActivity = mapActivity;
     }
@@ -47,7 +47,7 @@ public class NokautHelper {
         requestAutoCompleteCategories(url, Constants.TAG_AUTOCOMPLETE_BY_CATEGORY, input);
     }
 
-    private void showAutoCompleteProducts(String input) {
+    public void showAutoCompleteProducts(String input) {
         String url = getAutoCompleteProductsUrl(input);
         requestShowAutoCompleteProducts(url, Constants.TAG_AUTOCOMPLETE_BY_PRODUCT, input);
     }
@@ -99,7 +99,8 @@ public class NokautHelper {
     @NonNull
     private String getMoreProductsUrl(String input, int offset) {
         StringBuilder urlString = new StringBuilder();
-        urlString.append("http://nokaut.io/api/v2/products?quality=100&phrase=");
+        urlString.append(startLink);
+        urlString.append("products?quality=100&phrase=");
         try {
             urlString.append(URLEncoder.encode(input, "utf8"));
         } catch (UnsupportedEncodingException e) {
@@ -112,9 +113,9 @@ public class NokautHelper {
     @NonNull
     private String getOffersUrl(AutoCompleteResult result) {
         StringBuilder urlString = new StringBuilder();
-        urlString.append("http://nokaut.io/api/v2");
+        urlString.append(startLink);
         if (result.getType().equals("product")) {
-            urlString.append("/products/");
+            urlString.append("products/");
             try {
                 urlString.append(URLEncoder.encode(result.getId(), "utf8"));
             } catch (UnsupportedEncodingException e) {
@@ -122,7 +123,7 @@ public class NokautHelper {
             }
             urlString.append("/offers?fields=title,shop.name,shop.id,shop.url,shop.url_logo,availability,category,description_short,price,producer,photo_id,click_url");
         } else if (result.getType().equals("category")) {
-            urlString.append("/offers?fields=title,shop.name,shop.id,shop.url,shop.url_logo,availability,category,description_short,price,producer,photo_id,click_url&filter%5Bcategory_id%5D=");
+            urlString.append("offers?fields=title,shop.name,shop.id,shop.url,shop.url_logo,availability,category,description_short,price,producer,photo_id,click_url&filter%5Bcategory_id%5D=");
             urlString.append(result.getId());
         }
         return urlString.toString();
@@ -309,7 +310,7 @@ public class NokautHelper {
         mapActivity.queue.add(jsonObjRequest);
     }
 
-    // on response
+    // response
     private void onResponseAutoCompleteByCategory(JSONObject response, String input) throws JSONException {
         JSONArray results = response.getJSONArray("categories");
         // if no results, make query for products
@@ -356,9 +357,9 @@ public class NokautHelper {
             JSONObject c = ja.getJSONObject(i);
             String title = c.getString("title");
             String id = c.getString("id");
-            AutoCompleteResult autoCompleteResult1 = new AutoCompleteResult("product", title, id);
-            if (!mapActivity.autoCompleteResults.contains(autoCompleteResult1)) {
-                mapActivity.autoCompleteResults.add(autoCompleteResult1);
+            AutoCompleteResult acr = new AutoCompleteResult("product", title, id);
+            if (!mapActivity.autoCompleteResults.contains(acr)) {
+                mapActivity.autoCompleteResults.add(acr);
             }
         }
         mapActivity.queryOffers(autoCompleteResult);
@@ -388,7 +389,7 @@ public class NokautHelper {
                 // No more products, get offers
                 for (int i = 0; i < mapActivity.autoCompleteResults.size() - 1; i++) {
                     AutoCompleteResult r = mapActivity.autoCompleteResults.get(i);
-                    if (!r.getId().equals("all") && !r.getName().equals(input)) {
+                    if (!r.getId().equals("all") && !r.getName().equals(input) && !r.getType().equals(Constants.OFFER_SKAPIEC)) {
                         if (i == mapActivity.autoCompleteResults.size()-2){
                             finish = true;
                         }
@@ -400,7 +401,7 @@ public class NokautHelper {
             // Maximum quantity of products, get offers
             for (int i = 0; i < mapActivity.autoCompleteResults.size() - 1; i++) {
                 AutoCompleteResult r = mapActivity.autoCompleteResults.get(i);
-                if (!r.getId().equals("all") && !r.getName().equals(input)) {
+                if (!r.getId().equals("all") && !r.getName().equals(input) && !r.getType().equals(Constants.OFFER_SKAPIEC)) {
                     if (i == mapActivity.autoCompleteResults.size()-2){
                         finish = true;
                     }
@@ -426,9 +427,23 @@ public class NokautHelper {
                     offerModel = buildTempOffer(offer);
                     shopModel = buildTempShop(shop);
 
-                    // add shop to list, if not exists
-                    if (!mapActivity.shops.contains(shopModel) && !shopModel.getId().isEmpty()) {
+                    // update min price
+                    if(offerModel.getPrice() < shopModel.getMinPrice()) {
+                        shopModel.setMinPrice(offerModel.getPrice());
+                    }
+
+                    // Assign shop to offer
+                    if (!mapActivity.shops.contains(shopModel)) {
                         mapActivity.shops.add(shopModel);
+                    } else {
+                        for (Shop shop1 : mapActivity.shops) {
+                            if (shop1.getName().toLowerCase().equals(shopModel.getName().toLowerCase())) {
+                                if (offerModel.getPrice() < shop1.getMinPrice()) {
+                                    shop1.setMinPrice(offerModel.getPrice());
+                                }
+                                offerModel.setShop(shop1);
+                            }
+                        }
                     }
 
                     // update
@@ -525,7 +540,7 @@ public class NokautHelper {
         if (offer.has("photo_id")) {
             offerPhotoId = offer.getString("photo_id");
         }
-        return new Offer(offerAvailability, offerPrice, offerTitle, offerCategory, offerDesc, offerClickUrl, offerProducer, offerPhotoId);
+        return new Offer(Constants.OFFER_NOKAUT, offerAvailability, offerPrice, offerTitle, offerCategory, offerDesc, offerClickUrl, offerProducer, offerPhotoId);
     }
 
     private Shop buildTempShop(JSONObject shop) throws JSONException {
@@ -543,6 +558,6 @@ public class NokautHelper {
         if (shop.has("url_logo")) {
             shopLogoUrl = shop.getString("url_logo");
         }
-        return new Shop(shopName, shopUrl, shopLogoUrl, shopId);
+        return new Shop(Constants.OFFER_NOKAUT, shopName, shopUrl, shopLogoUrl, shopId);
     }
 }

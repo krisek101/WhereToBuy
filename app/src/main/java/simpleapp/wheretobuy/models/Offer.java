@@ -2,8 +2,6 @@ package simpleapp.wheretobuy.models;
 
 import android.support.annotation.NonNull;
 
-import java.util.Comparator;
-
 public class Offer implements Comparable<Offer> {
 
     private int availability;
@@ -15,8 +13,11 @@ public class Offer implements Comparable<Offer> {
     private String producer;
     private String photoId;
     private Shop shop;
+    private String type;
+    private String id;
 
-    public Offer(int availability, double price, String title, String category, String desc, String clickUrl, String producer, String photoId) {
+    public Offer(String type, int availability, double price, String title, String category, String desc, String clickUrl, String producer, String photoId) {
+        this.type = type;
         this.availability = availability;
         this.price = price;
         this.title = title;
@@ -25,6 +26,16 @@ public class Offer implements Comparable<Offer> {
         this.clickUrl = clickUrl;
         this.producer = producer;
         this.photoId = photoId;
+    }
+
+    public Offer(String type, int availability, String title, String clickUrl, String category, String photoId, String id) {
+        this.type = type;
+        this.availability = availability;
+        this.title = title;
+        this.category = category;
+        this.clickUrl = clickUrl;
+        this.photoId = photoId;
+        this.id = id;
     }
 
     public int getAvailability() {
@@ -99,6 +110,22 @@ public class Offer implements Comparable<Offer> {
         this.shop = shop;
     }
 
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
     @Override
     public int compareTo(@NonNull Offer offer) {
         if (this.getPrice() > offer.getPrice()) {
@@ -117,6 +144,36 @@ public class Offer implements Comparable<Offer> {
             } else {
                 return 0;
             }
+        }
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj != null) {
+            if (obj.getClass().isInstance(this)) {
+                Offer obj2 = (Offer) obj;
+                if (this.getTitle().equals(obj2.getTitle())) {
+                    if(this.getShop() != null && obj2.getShop() != null) {
+                        if (this.getShop().equals(obj2.getShop())) {
+                            if (this.getPrice() == obj2.getPrice()) {
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            return false;
         }
     }
 }
