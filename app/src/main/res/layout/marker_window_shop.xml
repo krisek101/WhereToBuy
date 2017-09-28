@@ -6,45 +6,45 @@
     android:background="@drawable/info_window_rounded"
     android:orientation="vertical">
 
-    <RelativeLayout
+    <LinearLayout
         android:id="@+id/shop_details"
-        android:layout_width="250dp"
+        android:layout_width="match_parent"
         android:layout_height="50dp"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
+        android:orientation="horizontal"
+        android:weightSum="1.5"
         android:gravity="center">
 
         <ImageView
             android:id="@+id/shop_logo"
             android:layout_width="wrap_content"
-            android:layout_height="50dp"
-            android:layout_centerVertical="true" />
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:layout_gravity="center"/>
 
         <TextView
             android:id="@+id/distance"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerVertical="true"
-            android:layout_marginStart="10dp"
-            android:layout_toEndOf="@+id/shop_logo"
             android:ellipsize="end"
             android:maxLines="1"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_gravity="center"
+            android:layout_weight="0.5"/>
 
-    </RelativeLayout>
+        <ImageView
+            android:id="@+id/info_window_exit"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@string/exit"
+            android:src="@drawable/clear"
+            android:layout_gravity="end|center_vertical"
+            android:layout_weight="0.5"/>
 
-    <ImageView
-        android:id="@+id/info_window_exit"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentTop="true"
-        android:layout_toEndOf="@+id/shop_details"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="15dp"
-        android:contentDescription="@string/exit"
-        android:src="@drawable/clear" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/shop_address"

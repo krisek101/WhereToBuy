@@ -54,9 +54,9 @@ public class AutocompleteAddressesAdapter extends ArrayAdapter<String> {
             public void onClick(View view) {
                 // set new search position
                 mapActivity.googleHelper.changeUserLocation(id);
-
                 mapActivity.searchLocation.setText(result);
                 mapActivity.searchLocation.dismissDropDown();
+                mapActivity.stateStart.setText(result);
                 mapActivity.hideKeyboard();
             }
         });

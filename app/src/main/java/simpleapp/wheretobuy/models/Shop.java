@@ -11,10 +11,12 @@ public class Shop implements Comparable<Shop> {
     private String id;
     private String name;
     private String url;
-    private String logoUrl;
+    private String logoUrl = "";
     private List<ShopLocation> locations = new ArrayList<>();
     private double bestDistance = -1;
     private double minPrice = 100000000;
+    private double maxPrice = 0;
+    private int totalCountOffers = 0;
     private String type;
 
     public Shop(String type, String name, String url, String logoUrl, String id) {
@@ -132,5 +134,21 @@ public class Shop implements Comparable<Shop> {
 
     public void setMinPrice(double minPrice) {
         this.minPrice = minPrice;
+    }
+
+    public double getMaxPrice() {
+        return maxPrice;
+    }
+
+    public void setMaxPrice(double maxPrice) {
+        this.maxPrice = maxPrice;
+    }
+
+    public int getTotalCountOffers() {
+        return totalCountOffers;
+    }
+
+    public void setTotalCountOffers(int totalCountOffers) {
+        this.totalCountOffers = totalCountOffers;
     }
 }

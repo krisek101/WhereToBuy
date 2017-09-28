@@ -11,10 +11,12 @@ import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.speech.RecognizerIntent;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
@@ -86,6 +88,7 @@ import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.fragments.TabOffersFragment;
 import simpleapp.wheretobuy.fragments.TabShopsFragment;
 import simpleapp.wheretobuy.helpers.ListenerHelper;
+import simpleapp.wheretobuy.helpers.LoadingHelper;
 import simpleapp.wheretobuy.models.AutoCompleteResult;
 import simpleapp.wheretobuy.models.CustomDialog;
 import simpleapp.wheretobuy.models.Offer;
@@ -94,6 +97,7 @@ import simpleapp.wheretobuy.models.ShopLocation;
 import simpleapp.wheretobuy.partners.GooglePartner;
 import simpleapp.wheretobuy.partners.NokautPartner;
 import simpleapp.wheretobuy.partners.SkapiecPartner;
+import simpleapp.wheretobuy.tasks.GeocodeTask;
 
 import static simpleapp.wheretobuy.constants.Constants.SPEECH_REQUEST_CODE;
 
@@ -117,6 +121,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public FloatingActionButton getMyLocationButton;
     public TextView getMyLocation;
     public TextView changeLocation;
+    public TextView stateStart;
+    public RelativeLayout stateLoading;
+    public RelativeLayout stateFinish;
 
     // Collections
     public List<AutoCompleteResult> autoCompleteResults = new ArrayList<>();
@@ -126,13 +133,13 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     // Others
     public RequestQueue queue;
-    private TextView errorConnected;
-    public boolean finish = false;
     public LatLng tempPosition;
     public boolean getMyLocationButtonClicked = false;
     public AlertDialog changeLocationDialog;
     public ShopsAdapter shopsAdapter;
     public ListView shopsListView;
+    public LoadingHelper loadingHelper;
+    public boolean isOnline;
 
     // Partners
     public GooglePartner googleHelper;
@@ -143,20 +150,53 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
-
+        isOnline = UsefulFunctions.isOnline(MapActivity.this);
         prepareGoogleMap();
         requestPermissions();
-        preLocation();
         initUI();
+        preLocation();
         initPartners();
         setListeners();
         initViewPagers();
+        changeFooterInfo();
+//        checkOnline();
     }
 
     private void initPartners() {
         googleHelper = new GooglePartner("https://maps.googleapis.com/maps/api/place/", this);
         nokautHelper = new NokautPartner("http://nokaut.io/api/v2/", this);
         skapiecHelper = new SkapiecPartner("http://api.skapiec.pl/beta_", this);
+    }
+
+    private void checkOnline() {
+        final Handler h = new Handler();
+        final int delay = 1000;
+        final Runnable[] runnable = new Runnable[1];
+        final boolean[] already = {true, true};
+        h.postDelayed(new Runnable() {
+            public void run() {
+                if (UsefulFunctions.isOnline(MapActivity.this)) {
+                    if (already[0]) {
+                        already[0] = false;
+                        already[1] = true;
+                        isOnline = true;
+                        changeFooterInfo();
+                        if (userLocation == null) {
+                            preLocation();
+                        }
+                    }
+                } else {
+                    if (already[1]) {
+                        already[1] = false;
+                        already[0] = true;
+                        isOnline = false;
+                        changeFooterInfo();
+                    }
+                }
+                runnable[0] = this;
+                h.postDelayed(runnable[0], delay);
+            }
+        }, delay);
     }
 
     // initial functions
@@ -168,11 +208,13 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         footerSlider = (RelativeLayout) findViewById(R.id.footer_content);
         footerSlider.setY(UsefulFunctions.getScreenHeight(this) - UsefulFunctions.getStatusBarHeight(this));
         footerSlider.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, UsefulFunctions.getScreenHeight(this) - footer.getLayoutParams().height - UsefulFunctions.getStatusBarHeight(this)));
-        errorConnected = (TextView) findViewById(R.id.error_connected);
         goToShopButton = (FloatingActionButton) findViewById(R.id.goToShopButton);
         getMyLocationButton = (FloatingActionButton) findViewById(R.id.getMyLocationButton);
         getMyLocation = (TextView) findViewById(R.id.getMyLocation);
-        changeLocation = (TextView) findViewById(R.id.setUserLocation);
+        changeLocation = (TextView) findViewById(R.id.goToSearchingCentre);
+        stateStart = (TextView) findViewById(R.id.state_start);
+        stateLoading = (RelativeLayout) findViewById(R.id.state_loading);
+        stateFinish = (RelativeLayout) findViewById(R.id.state_finish);
         initSearchText();
     }
 
@@ -191,26 +233,14 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         viewPager.setAdapter(sectionsPageAdapter);
     }
 
-    public void setLoading(boolean load) {
-        if (load) {
-            searchText.showProgress();
-        } else {
-            searchText.hideProgress();
-        }
-    }
-
     public void showFabOptions() {
         getMyLocationButtonClicked = true;
         FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) getMyLocation.getLayoutParams();
         FrameLayout.LayoutParams layoutParams2 = (FrameLayout.LayoutParams) changeLocation.getLayoutParams();
 
-        if (footer.getVisibility() == View.VISIBLE) {
-            layoutParams.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 70), UsefulFunctions.getPixelsFromDp(this, 125));
-            layoutParams2.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 90), UsefulFunctions.getPixelsFromDp(this, 85));
-        } else {
-            layoutParams.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 70), UsefulFunctions.getPixelsFromDp(this, 80));
-            layoutParams2.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 90), UsefulFunctions.getPixelsFromDp(this, 40));
-        }
+        layoutParams.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 70), UsefulFunctions.getPixelsFromDp(this, 125));
+        layoutParams2.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 90), UsefulFunctions.getPixelsFromDp(this, 85));
+
         getMyLocation.setLayoutParams(layoutParams);
         changeLocation.setLayoutParams(layoutParams2);
 
@@ -285,7 +315,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     private void initSearchText() {
+        loadingHelper = new LoadingHelper(this);
         searchText.setDismissFocusOnItemSelection(true);
+
+        // on clear button click
         searchText.setOnClearSearchActionListener(new FloatingSearchView.OnClearSearchActionListener() {
             @Override
             public void onClearSearchClicked() {
@@ -295,6 +328,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             }
         });
 
+        // on microphone click
         searchText.setOnMenuItemClickListener(new FloatingSearchView.OnMenuItemClickListener() {
             @Override
             public void onActionMenuItemSelected(MenuItem item) {
@@ -312,44 +346,51 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             }
         });
 
+        // show auto complete results on change
         searchText.setOnQueryChangeListener(new FloatingSearchView.OnQueryChangeListener() {
             @Override
             public void onSearchTextChanged(String oldQuery, final String newQuery) {
                 clearResults();
-                setLoading(false);
-                if (lastAutoCompleteResults != null) {
-                    for (AutoCompleteResult autoCompleteResult : lastAutoCompleteResults) {
-                        if (autoCompleteResult.getName().toLowerCase().startsWith(newQuery.toLowerCase())) {
-                            autoCompleteResults.add(autoCompleteResult);
+                if (newQuery.length() <= 2) {
+                    if (lastAutoCompleteResults != null) {
+                        for (AutoCompleteResult autoCompleteResult : lastAutoCompleteResults) {
+                            if (autoCompleteResult.getName().toLowerCase().startsWith(newQuery.toLowerCase())) {
+                                autoCompleteResults.add(autoCompleteResult);
+                            }
                         }
+                        searchText.swapSuggestions(autoCompleteResults);
                     }
-                    searchText.swapSuggestions(autoCompleteResults);
-                }
-                if (newQuery.length() > 2) {
+                } else {
                     if (UsefulFunctions.isOnline(MapActivity.this)) {
                         // update list from Nokaut API
-//                        nokautHelper.showAutoCompleteCategories(newQuery);
+                        searchText.showProgress();
                         nokautHelper.showAutoCompleteProducts(newQuery);
-                        errorConnected.setVisibility(View.GONE);
                     } else {
-                        errorConnected.setVisibility(View.VISIBLE);
+                        List<AutoCompleteResult> noInternet = new ArrayList<>();
+                        noInternet.add(new AutoCompleteResult("error", "Brak połączenia z Internetem", "noInternetConn"));
+                        searchText.swapSuggestions(noInternet);
                     }
                 }
-
             }
         });
 
+        // on suggestion click
         searchText.setOnSearchListener(new FloatingSearchView.OnSearchListener() {
             @Override
             public void onSuggestionClicked(SearchSuggestion searchSuggestion) {
                 AutoCompleteResult autoCompleteResult = (AutoCompleteResult) searchSuggestion;
-                if (lastAutoCompleteResults.contains(autoCompleteResult) && autoCompleteResult.getId().equals("all")) {
-                    setAutocompleteListByInput(autoCompleteResult);
-                    skapiecHelper.searchMostCommonCategory(autoCompleteResult.getName());
+                if (!autoCompleteResult.getType().equals("error")) {
+                    if (autoCompleteResult.getId().equals("all")) {
+                        autoCompleteResults.clear();
+                        nokautHelper.getMoreProducts(autoCompleteResult.getName(), 0);
+                    } else {
+                        nokautHelper.getOffers(autoCompleteResult);
+                    }
+                    skapiecHelper.searchMostCommonCategory(autoCompleteResult.getName(), 0);
+                    addLastAutoCompleteResult(autoCompleteResult);
+//                    changeFooterInfo();
                 } else {
-                    skapiecHelper.searchMostCommonCategory(autoCompleteResult.getName());
-                    queryOffers(autoCompleteResult);
-                    addLastAutocompleteResult(autoCompleteResult);
+                    autoCompleteResult.setName("");
                 }
             }
 
@@ -357,7 +398,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             public void onSearchAction(String currentQuery) {
             }
         });
-
 
         searchText.setOnBindSuggestionCallback(new SearchSuggestionsAdapter.OnBindSuggestionCallback() {
             @Override
@@ -375,13 +415,15 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     }
                 }
                 textView.setTextColor(Color.parseColor("#000000"));
-                String text = autoCompleteResult.getBody().replaceFirst(searchText.getQuery(), "<font color=\"" + "#787878" + "\">" + searchText.getQuery() + "</font>");
+                String text = autoCompleteResult.getBody().toLowerCase().replaceFirst(searchText.getQuery().toLowerCase(), "<font color=\"" + "#787878" + "\">" + searchText.getQuery() + "</font>");
                 textView.setText(Html.fromHtml(text));
             }
         });
+
         searchText.setOnFocusChangeListener(new FloatingSearchView.OnFocusChangeListener() {
             @Override
             public void onFocus() {
+                clearResults();
                 if (lastAutoCompleteResults != null) {
                     searchText.swapSuggestions(lastAutoCompleteResults);
                 }
@@ -395,12 +437,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     private void setAutocompleteListByInput(AutoCompleteResult autoCompleteResult) {
-        setLoading(true);
-        autoCompleteResults.clear();
-        nokautHelper.getAutoCompleteProducts(autoCompleteResult);
+
     }
 
-    private void addLastAutocompleteResult(AutoCompleteResult autoCompleteResult) {
+    private void addLastAutoCompleteResult(AutoCompleteResult autoCompleteResult) {
         if (lastAutoCompleteResults != null) {
             if (lastAutoCompleteResults.size() == Constants.MAX_AUTOCOMPLETE_RESULTS) {
                 lastAutoCompleteResults.remove(lastAutoCompleteResults.size() - 1);
@@ -415,33 +455,30 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     public void hardClear() {
-        goToShopButton.setVisibility(View.GONE);
         searchText.setSearchText("");
         if (getMyLocationButtonClicked) {
             hideFabOptions();
         }
-        finish = true;
         if (queue != null) {
-            queue.cancelAll(Constants.TAG_PLACES);
-            queue.cancelAll(Constants.TAG_MORE_PRODUCTS);
             queue.cancelAll(Constants.TAG_AUTOCOMPLETE_BY_CATEGORY);
-            queue.cancelAll(Constants.TAG_OFFERS);
         }
         clearResults();
     }
 
     public void clearResults() {
+        // cancel queue
+        if (queue != null) {
+            queue.cancelAll(Constants.TAG_SHOW_AUTOCOMPLETE_PRODUCTS);
+            loadingHelper.clearAllRequests();
+        }
+        searchText.hideProgress();
+        goToShopButton.setVisibility(View.GONE);
         clearShopMarkers();
+        shops.clear();
         autoCompleteResults.clear();
         offers.clear();
         changeFooterInfo();
         searchText.clearSuggestions();
-
-        // cancel queue
-        if (queue != null) {
-            queue.cancelAll(Constants.TAG_AUTOCOMPLETE_BY_PRODUCT);
-        }
-        shops.clear();
     }
 
     // Permissions and settings
@@ -492,6 +529,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     public void checkUsersSettingGPS() {
         if (UsefulFunctions.isOnline(this)) {
+            showCommunicationSearchingLocation();
             if (mGoogleApiClient != null) {
                 if (!mGoogleApiClient.isConnected()) {
                     mGoogleApiClient.connect();
@@ -526,6 +564,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     }
                 });
             }
+        } else {
+            stateStart.setTextColor(getResources().getColor(R.color.red));
+            stateStart.setText(R.string.error_internet_conn);
         }
     }
 
@@ -617,6 +658,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     double latitude = mLastLocation.getLatitude();
                     double longitude = mLastLocation.getLongitude();
                     userLocation = new LatLng(latitude, longitude);
+                    new GeocodeTask(this, userLocation, stateStart).execute();
 
                     // if change location is more than 100 meters, then refresh searching
                     if (oldLocation.latitude != -1) {
@@ -684,7 +726,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     ShopLocation shopLocation = getShopLocationByPosition(marker.getPosition());
                     Shop shop = getShopByShopLocation(shopLocation);
                     List<Offer> offersByShop = getOffersByShop(shop);
-                    showOffersInAlertDialog(offersByShop, shopLocation);
+                    showCustomDialog(offersByShop, shopLocation);
                 }
             }
         });
@@ -717,6 +759,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     // Others
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == SPEECH_REQUEST_CODE && resultCode == RESULT_OK) {
@@ -771,116 +814,134 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     // Offers
-    public void showOffersInAlertDialog(List<Offer> offersByPosition, ShopLocation shopLocation) {
-        CustomDialog newFragment = CustomDialog.newInstance(offersByPosition, shopLocation, this);
-        newFragment.show(getSupportFragmentManager(), "dialog");
+    public void showCustomDialog(List<Offer> offersList, ShopLocation shopLocation) {
+        if(!offersList.isEmpty()) {
+            CustomDialog newFragment = CustomDialog.newInstance(offersList, shopLocation, this);
+            newFragment.show(getSupportFragmentManager(), "dialog");
+        }
+    }
+
+    public void showCommunicationSearchingLocation() {
+        stateStart.setTextColor(getResources().getColor(R.color.black));
+        stateStart.setText(R.string.state_localization);
     }
 
     public void changeFooterInfo() {
-        RelativeLayout floatingButtonContainer = (RelativeLayout) findViewById(R.id.floating_button_container);
-        RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) floatingButtonContainer.getLayoutParams();
-        if (offers.size() == 0) {
-            footer.setVisibility(View.GONE);
-            lp.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 25), UsefulFunctions.getPixelsFromDp(this, 25));
-        } else {
-            // logic
-            Collections.sort(offers);
-            final OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
-            shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops, this);
-            Offer bestOffer = offers.get(0);
-            int nearMe = 0, outside;
-            for (Offer offer : offers) {
-                if (!offer.getShop().getLocations().isEmpty()) {
-                    nearMe++;
+        if (autoCompleteResults.isEmpty()) {
+            // set Visibility
+            stateStart.setVisibility(View.VISIBLE);
+            stateLoading.setVisibility(View.GONE);
+            stateFinish.setVisibility(View.GONE);
+            // show address
+            showCommunicationSearchingLocation();
+            if (isOnline) {
+                if (userLocation != null) {
+                    new GeocodeTask(this, userLocation, stateStart).execute();
                 }
+            } else {
+                stateStart.setTextColor(getResources().getColor(R.color.red));
+                stateStart.setText(R.string.error_internet_conn);
             }
-            outside = offers.size() - nearMe;
+        } else {
+            if (loadingHelper.isLoading) {
+                // set Visibility
+                stateFinish.setVisibility(View.GONE);
+                stateStart.setVisibility(View.GONE);
+                stateLoading.setVisibility(View.VISIBLE);
+            } else if (!offers.isEmpty()) {
+                // set Visibility
+                stateStart.setVisibility(View.GONE);
+                stateLoading.setVisibility(View.GONE);
+                stateFinish.setVisibility(View.VISIBLE);
 
-            // UI
-            lp.setMargins(0, 0, UsefulFunctions.getPixelsFromDp(this, 25), UsefulFunctions.getPixelsFromDp(this, 70));
+                TextView leftText = (TextView) findViewById(R.id.near_me_text);
+                TextView middleText = (TextView) findViewById(R.id.best_price_text);
+                TextView rightText = (TextView) findViewById(R.id.outside_text);
+                middleText.setTypeface(null, Typeface.BOLD);
 
-            // UI - footer handler
-            TextView nearMeText = (TextView) findViewById(R.id.near_me_text);
-            TextView bestPriceText = (TextView) findViewById(R.id.best_price_text);
-            TextView outsideText = (TextView) findViewById(R.id.outside_text);
-            bestPriceText.setTypeface(null, Typeface.BOLD);
-
-            // UI - footer shops
-            shopsListView = (ListView) findViewById(R.id.footer_shops);
-            final Button sortShopsByPriceView = (Button) findViewById(R.id.sort_shops_by_price);
-            final Button sortShopsByDistanceView = (Button) findViewById(R.id.sort_shops_by_distance);
-            final String[] sortShopsStatus = {Constants.SORT_BY_DISTANCE};
-
-            // UI - footer offers
-            final ListView offersListView = (ListView) findViewById(R.id.footer_offers);
-            final Button sortOffersByPriceView = (Button) findViewById(R.id.sort_by_price);
-            final Button sortOffersByDistanceView = (Button) findViewById(R.id.sort_by_distance);
-            final String[] sortOffersStatus = {Constants.SORT_BY_PRICE};
-            final RelativeLayout offersFilters = (RelativeLayout) findViewById(R.id.filters_offers);
-            offersFilters.setVisibility(View.VISIBLE);
-            changeFilterClicked(1, sortOffersByDistanceView, sortOffersByPriceView);
-            changeFilterClicked(0, sortShopsByDistanceView, sortShopsByPriceView);
-
-
-            // Offers - listeners
-            sortOffersByPriceView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    if (sortOffersStatus[0].equals(Constants.SORT_BY_DISTANCE)) {
-                        changeFilterClicked(1, sortOffersByDistanceView, sortOffersByPriceView);
-                        sortOffersStatus[0] = Constants.SORT_BY_PRICE;
-                        sortOffers(sortOffersStatus[0], offersAdapter, offersListView);
+                final OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
+                shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops, this);
+                int outside, nearMe = 0;
+                for (Shop s : shops) {
+                    if(s.getBestDistance() != -1){
+                        nearMe += getOffersByShop(s).size();
                     }
                 }
-            });
-            sortOffersByDistanceView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    if (sortOffersStatus[0].equals(Constants.SORT_BY_PRICE)) {
-                        changeFilterClicked(0, sortOffersByDistanceView, sortOffersByPriceView);
-                        sortOffersStatus[0] = Constants.SORT_BY_DISTANCE;
-                        sortOffers(sortOffersStatus[0], offersAdapter, offersListView);
+                outside = offers.size() - nearMe;
+
+                // UI - footer shops
+                shopsListView = (ListView) findViewById(R.id.footer_shops);
+                final Button sortShopsByPriceView = (Button) findViewById(R.id.sort_shops_by_price);
+                final Button sortShopsByDistanceView = (Button) findViewById(R.id.sort_shops_by_distance);
+                final String[] sortShopsStatus = {Constants.SORT_BY_DISTANCE};
+
+                // UI - footer offers
+                final ListView offersListView = (ListView) findViewById(R.id.footer_offers);
+                final Button sortOffersByPriceView = (Button) findViewById(R.id.sort_by_price);
+                final Button sortOffersByDistanceView = (Button) findViewById(R.id.sort_by_distance);
+                final String[] sortOffersStatus = {Constants.SORT_BY_PRICE};
+                final RelativeLayout offersFilters = (RelativeLayout) findViewById(R.id.filters_offers);
+                offersFilters.setVisibility(View.VISIBLE);
+                changeFilterClicked(1, sortOffersByDistanceView, sortOffersByPriceView);
+                changeFilterClicked(0, sortShopsByDistanceView, sortShopsByPriceView);
+
+
+                // Offers - listeners
+                sortOffersByPriceView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if (sortOffersStatus[0].equals(Constants.SORT_BY_DISTANCE)) {
+                            changeFilterClicked(1, sortOffersByDistanceView, sortOffersByPriceView);
+                            sortOffersStatus[0] = Constants.SORT_BY_PRICE;
+                            sortOffers(sortOffersStatus[0], offersAdapter, offersListView);
+                        }
                     }
-                }
-            });
-
-            // Shops - listeners
-            sortShopsByPriceView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    if (sortShopsStatus[0].equals(Constants.SORT_BY_DISTANCE)) {
-                        changeFilterClicked(1, sortShopsByDistanceView, sortShopsByPriceView);
-                        sortShopsStatus[0] = Constants.SORT_BY_PRICE;
-                        sortShops(sortShopsStatus[0]);
+                });
+                sortOffersByDistanceView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if (sortOffersStatus[0].equals(Constants.SORT_BY_PRICE)) {
+                            changeFilterClicked(0, sortOffersByDistanceView, sortOffersByPriceView);
+                            sortOffersStatus[0] = Constants.SORT_BY_DISTANCE;
+                            sortOffers(sortOffersStatus[0], offersAdapter, offersListView);
+                        }
                     }
-                }
-            });
-            sortShopsByDistanceView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    if (sortShopsStatus[0].equals(Constants.SORT_BY_PRICE)) {
-                        changeFilterClicked(0, sortShopsByDistanceView, sortShopsByPriceView);
-                        sortShopsStatus[0] = Constants.SORT_BY_DISTANCE;
-                        sortShops(sortShopsStatus[0]);
+                });
+
+                // Shops - listeners
+                sortShopsByPriceView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if (sortShopsStatus[0].equals(Constants.SORT_BY_DISTANCE)) {
+                            changeFilterClicked(1, sortShopsByDistanceView, sortShopsByPriceView);
+                            sortShopsStatus[0] = Constants.SORT_BY_PRICE;
+                            sortShops(sortShopsStatus[0]);
+                        }
                     }
-                }
-            });
+                });
+                sortShopsByDistanceView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if (sortShopsStatus[0].equals(Constants.SORT_BY_PRICE)) {
+                            changeFilterClicked(0, sortShopsByDistanceView, sortShopsByPriceView);
+                            sortShopsStatus[0] = Constants.SORT_BY_DISTANCE;
+                            sortShops(sortShopsStatus[0]);
+                        }
+                    }
+                });
 
-            // Setters - footer handler
-            nearMeText.setText(String.valueOf(nearMe));
-            bestPriceText.setText(getString(R.string.best_offer) + " " + UsefulFunctions.getPriceFormat(bestOffer.getPrice()) + "");
-            outsideText.setText(String.valueOf(outside));
+                // Setters - footer handler
+                leftText.setText(String.valueOf(nearMe));
+                rightText.setText(String.valueOf(outside));
 
-            // Shops
-            sortShops(sortShopsStatus[0]);
+                // Shops
+                sortShops(sortShopsStatus[0]);
 
-            // Offers
-            sortOffers(sortOffersStatus[0], offersAdapter, offersListView);
-
-            // Footer Visibility
-            footer.setVisibility(View.VISIBLE);
+                // Offers
+                sortOffers(sortOffersStatus[0], offersAdapter, offersListView);
+                middleText.setText(getString(R.string.best_offer) + " " + UsefulFunctions.getPriceFormat(offers.get(0).getPrice()) + "");
+            }
         }
-        floatingButtonContainer.setLayoutParams(lp);
     }
 
     private void sortOffers(String sortType, OffersAdapter offersAdapter, ListView offersListView) {
@@ -992,38 +1053,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         }
     }
 
-    public void queryOffers(AutoCompleteResult result) {
-        // check user location
-        if (userLocation == null) {
-            checkUsersSettingGPS();
-        }
-
-        // clear
-        hideFabOptions();
-        offers.clear();
-        clearShopMarkers();
-        shops.clear();
-
-        // do query - nokaut
-        if (result.getId().equals("all")) {
-            nokautHelper.getMoreProducts(result.getName(), 20);
-        } else {
-            AutoCompleteResult r;
-            r = result;
-            autoCompleteResults.clear();
-            autoCompleteResults.add(r);
-            if (!result.getType().equals(Constants.OFFER_SKAPIEC)) {
-                nokautHelper.getOffers(result, true);
-            }
-        }
-
-        // hide keyboard
-        hideKeyboard();
-
-        // loading start/stop
-        setLoading(true);
-    }
-
     public void refreshShopLocations() {
         if (!shops.isEmpty()) {
             List<Shop> goodShops = new ArrayList<>(shops);
@@ -1039,12 +1068,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             }
 
             if (!goodShops.isEmpty()) {
-                setLoading(true);
-                boolean finish;
                 for (int i = 0; i < goodShops.size() - 1; i++) {
                     Shop shop = goodShops.get(i);
-                    finish = i == goodShops.size() - 2;
-                    nokautHelper.setShopLocations(shop, finish);
+                    googleHelper.searchNearbyShops(shop, Constants.SEARCH_RADIUS);
                 }
             }
         }
@@ -1086,7 +1112,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     public List<Offer> getOffersByShop(Shop shop) {
         List<Offer> offersByShop = new ArrayList<>();
-        for (Offer o : offers) {
+        List<Offer> tempOffers = new ArrayList<>(offers);
+        for(Offer o : tempOffers){
             if (o.getShop().equals(shop)) {
                 offersByShop.add(o);
             }

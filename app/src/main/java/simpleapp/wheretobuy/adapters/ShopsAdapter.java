@@ -14,8 +14,6 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import simpleapp.wheretobuy.R;
@@ -67,18 +65,10 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
         }
 
         final Shop shop = shops.get(position);
-        final List<Offer> offersFromShop = getOffersFromShop(shop);
-        double priceMin = 0, priceMax = 0;
-        if (!offersFromShop.isEmpty()) {
-            Collections.sort(offersFromShop);
-            priceMin = offersFromShop.get(0).getPrice();
-            priceMax = offersFromShop.get(offersFromShop.size() - 1).getPrice();
-        }
-//        shop.setMinPrice(priceMin);
 
         // Setters
         String logoUrl;
-        if (shop.getLogoUrl() != null) {
+        if (!shop.getLogoUrl().isEmpty()) {
             if (shop.getType().equals(Constants.OFFER_NOKAUT)) {
                 logoUrl = "http://offers.gallery" + shop.getLogoUrl();
             } else {
@@ -89,14 +79,14 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
             holder.photo.setImageResource(R.drawable.no_photo);
         }
         holder.shopNameText.setText(shop.getName());
-        holder.counter.setText("Liczba ofert: " + offersFromShop.size());
-        if (priceMin == priceMax) {
-            holder.priceText.setText(UsefulFunctions.getPriceFormat(priceMin));
+        holder.counter.setText("Liczba ofert: " + shop.getTotalCountOffers());
+        if (shop.getMaxPrice() == shop.getMinPrice()) {
+            holder.priceText.setText(UsefulFunctions.getPriceFormat(shop.getMinPrice()));
         } else {
-            holder.priceText.setText(UsefulFunctions.getPriceFormat(priceMin) + " - " + UsefulFunctions.getPriceFormat(priceMax));
+            holder.priceText.setText(UsefulFunctions.getPriceFormat(shop.getMinPrice()) + " - " + UsefulFunctions.getPriceFormat(shop.getMaxPrice()));
         }
 
-        if (shop.getBestDistance() != -1 && shop.getBestDistance() != 1000000f) {
+        if (shop.getBestDistance() != -1) {
             holder.distance.setText(UsefulFunctions.getDistanceKilometersFormat(shop.getBestDistance()));
             holder.distance.setVisibility(View.VISIBLE);
         } else {
@@ -121,23 +111,14 @@ public class ShopsAdapter extends ArrayAdapter<Shop> {
         convertView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                final List<Offer> offersFromShop = mapActivity.getOffersByShop(shop);
                 if (!shop.getLocations().isEmpty()) {
-                    mapActivity.showOffersInAlertDialog(offersFromShop, shop.getLocations().get(0));
+                    mapActivity.showCustomDialog(offersFromShop, shop.getLocations().get(0));
                 } else {
-                    mapActivity.showOffersInAlertDialog(offersFromShop, null);
+                    mapActivity.showCustomDialog(offersFromShop, null);
                 }
             }
         });
         return convertView;
-    }
-
-    private List<Offer> getOffersFromShop(Shop shop) {
-        List<Offer> offers = new ArrayList<>();
-        for (Offer offer : mapActivity.offers) {
-            if (offer.getShop().getName().equals(shop.getName())) {
-                offers.add(offer);
-            }
-        }
-        return offers;
     }
 }

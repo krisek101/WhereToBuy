@@ -8,11 +8,8 @@ import android.util.Log;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.google.android.gms.maps.CameraUpdate;
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
@@ -35,6 +32,7 @@ import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.models.Offer;
 import simpleapp.wheretobuy.models.Shop;
 import simpleapp.wheretobuy.models.ShopLocation;
+import simpleapp.wheretobuy.tasks.onResponseGoogleNearbyShops;
 
 public class GooglePartner {
 
@@ -47,14 +45,14 @@ public class GooglePartner {
     }
 
     // method
-    void searchNearbyShops(Shop shop, int radius, boolean finish) {
+    public void searchNearbyShops(Shop shop, int radius) {
         String url = getNearbyShopsUrl(shop.getName(), radius);
-        requestNearbyShops(url, "NEARBY_SHOPS", shop, finish);
+        requestNearbyShops(url, Constants.TAG_NEARBY_SHOPS, shop);
     }
 
     public void changeUserLocation(String id) {
         String url = getPlaceDetailsUrl(id);
-        requestUserLocationDetails(url, Constants.TAG_PLACE_DETAILS);
+        requestUserLocationDetails(url, Constants.TAG_USER_LOCATION);
     }
 
     public void updateShopLocations(String id, ShopLocation shopLocation) {
@@ -101,20 +99,18 @@ public class GooglePartner {
     }
 
     // request
-    private void requestNearbyShops(String url, String tag, final Shop shop, final boolean finish) {
+    private void requestNearbyShops(String url, final String tag, final Shop shop) {
         Log.i("GOOGLE", url);
+        mapActivity.loadingHelper.changeLoader(1, tag);
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                try {
-                    onResponseNearbyShops(response, shop, finish);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+                new onResponseGoogleNearbyShops(mapActivity, response, shop, tag).execute();
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                mapActivity.loadingHelper.changeLoader(-1, tag);
             }
         });
         jsonObjRequest.setTag(tag);
@@ -179,7 +175,7 @@ public class GooglePartner {
     }
 
     // response
-    private void onResponseNearbyShops(JSONObject response, Shop shop, boolean finish) throws JSONException {
+    private void onResponseNearbyShops(JSONObject response, Shop shop) throws JSONException {
         JSONArray ja = response.getJSONArray("results");
         if (ja.length() != 0) {
             String name, placeId, vicinity = "";
@@ -192,7 +188,7 @@ public class GooglePartner {
                 JSONObject c = ja.getJSONObject(i);
                 if (c.has("name")) {
                     name = c.getString("name");
-                    if (name.toLowerCase().replaceAll("\\s+", "").contains(shop.getName().toLowerCase().replaceAll("\\s+", "").replaceAll(".pl",""))) {
+                    if (name.toLowerCase().replaceAll(".pl", "").replaceAll("\\s+", "").contains(shop.getName().toLowerCase().replaceAll(".pl", "").replaceAll("\\s+", ""))) {
                         JSONObject locationJSON = c.getJSONObject("geometry").getJSONObject("location");
                         location = new LatLng(locationJSON.getDouble("lat"), locationJSON.getDouble("lng"));
 
@@ -215,7 +211,7 @@ public class GooglePartner {
                         } else {
                             icon = BitmapFactory.decodeResource(mapActivity.getResources(), R.drawable.shop_marker_closed);
                         }
-                        Bitmap bitmap = Bitmap.createScaledBitmap(icon, (int) Math.round(icon.getWidth() * 0.2), (int) Math.round(icon.getHeight() * 0.2), false);
+                        Bitmap bitmap = Bitmap.createScaledBitmap(icon, (int) Math.round(icon.getWidth() * 0.4), (int) Math.round(icon.getHeight() * 0.4), false);
                         Marker marker = mapActivity.mMap.addMarker(new MarkerOptions().position(location).title(shop.getName()).icon(BitmapDescriptorFactory.fromBitmap(bitmap)));
                         shopLocation = new ShopLocation(placeId, name, location, marker, UsefulFunctions.getDistanceBetween(location, mapActivity.userLocation), rating, openNow);
                         shopLocation.setAddress(vicinity);
@@ -231,32 +227,6 @@ public class GooglePartner {
                 }
             }
         }
-
-        // end of searching
-        if (finish) {
-            mapActivity.setLoading(false);
-            LatLngBounds.Builder builder = new LatLngBounds.Builder();
-            boolean has = false;
-            for (Shop s : mapActivity.shops) {
-                if (!s.getLocations().isEmpty()) {
-                    for (ShopLocation shopLocation : s.getLocations()) {
-                        if (shopLocation.getMarker() != null) {
-                            builder.include(shopLocation.getMarker().getPosition());
-                            has = true;
-                        }
-                    }
-                }
-            }
-            builder.include(mapActivity.userLocation);
-            LatLngBounds bounds = builder.build();
-            CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, 100);
-            if (has) {
-                mapActivity.mMap.animateCamera(cu);
-            }
-        }
-
-        // update footer
-        mapActivity.changeFooterInfo();
     }
 
     private void onResponsePlaceDetails(JSONObject response) throws JSONException {
@@ -315,5 +285,4 @@ public class GooglePartner {
         mapActivity.searchLocation.setAdapter(adapter);
         adapter.notifyDataSetChanged();
     }
-
 }

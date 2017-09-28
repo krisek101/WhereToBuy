@@ -7,6 +7,8 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
+
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
@@ -54,8 +56,8 @@ public class ListenerHelper {
                         parentActivity.checkUsersSettingGPS();
                         parentActivity.hideFabOptions();
                         break;
-                    case R.id.setUserLocation:
-                        parentActivity.changeUserLocation();
+                    case R.id.goToSearchingCentre:
+                        parentActivity.mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(parentActivity.userLocation, 13));
                         parentActivity.hideFabOptions();
                         break;
                 }
@@ -76,63 +78,70 @@ public class ListenerHelper {
                         float toY;
                         int screenHeight = UsefulFunctions.getScreenHeight(parentActivity);
 
-                        if (gestureDetector.onTouchEvent(motionEvent)) {
-                            if (parentActivity.footerOpened) {
-                                toY = screenHeight - topOffset;
-                                parentActivity.footerOpened = false;
-                                viewElement.setBackground(parentActivity.getResources().getDrawable(R.drawable.footer_rounded));
-                            } else {
-                                viewElement.setBackgroundColor(Color.parseColor("#f4f4f4"));
-                                toY = parentActivity.footerTop + viewElement.getHeight();
-                                parentActivity.footerOpened = true;
+                        if(parentActivity.stateStart.getVisibility() == View.VISIBLE) {
+                            if (gestureDetector.onTouchEvent(motionEvent)) {
+                                parentActivity.changeUserLocation();
                             }
-                            parentActivity.footerSlider.animate().y(toY).setDuration(100).start();
-                            view.animate().y(toY - viewElement.getHeight()).setDuration(100).start();
-                            return false;
-                        } else {
-                            switch (motionEvent.getActionMasked()) {
-                                case MotionEvent.ACTION_DOWN:
-                                    y = motionEvent.getRawY() - view.getY() - view.getHeight();
-                                    break;
-                                case MotionEvent.ACTION_MOVE:
-                                    if (viewElement.getY() + viewElement.getHeight() < parentActivity.footerTop + viewElement.getHeight()) {
-                                        toY = parentActivity.footerTop + viewElement.getHeight();
-                                    } else {
-                                        toY = motionEvent.getRawY() - y;
-                                    }
-                                    parentActivity.footerSlider.animate().y(toY).setDuration(0).start();
-                                    view.animate().y(toY - viewElement.getHeight()).setDuration(0).start();
-                                    break;
-                                case MotionEvent.ACTION_UP:
-                                    if (parentActivity.footerOpened) {
-                                        if (motionEvent.getRawY() - y > 0.05 * parentActivity.footerSlider.getHeight()) {
-                                            toY = screenHeight - topOffset;
-                                            parentActivity.footerOpened = false;
-                                            viewElement.setBackground(parentActivity.getResources().getDrawable(R.drawable.footer_rounded));
-                                        } else {
+                        } else if(parentActivity.stateFinish.getVisibility() == View.VISIBLE) {
+                            if (gestureDetector.onTouchEvent(motionEvent)) {
+                                if (parentActivity.footerOpened) {
+                                    toY = screenHeight - topOffset;
+                                    parentActivity.footerOpened = false;
+                                    viewElement.setBackground(parentActivity.getResources().getDrawable(R.drawable.footer_rounded));
+                                } else {
+                                    viewElement.setBackgroundColor(Color.parseColor("#f4f4f4"));
+                                    toY = parentActivity.footerTop + viewElement.getHeight();
+                                    parentActivity.footerOpened = true;
+                                }
+                                parentActivity.footerSlider.animate().y(toY).setDuration(100).start();
+                                view.animate().y(toY - viewElement.getHeight()).setDuration(100).start();
+                                return false;
+                            } else {
+                                switch (motionEvent.getActionMasked()) {
+                                    case MotionEvent.ACTION_DOWN:
+                                        y = motionEvent.getRawY() - view.getY() - view.getHeight();
+                                        break;
+                                    case MotionEvent.ACTION_MOVE:
+                                        if (viewElement.getY() + viewElement.getHeight() < parentActivity.footerTop + viewElement.getHeight()) {
                                             toY = parentActivity.footerTop + viewElement.getHeight();
-                                            parentActivity.footerOpened = true;
-                                            viewElement.setBackgroundColor(Color.parseColor("#f4f4f4"));
-                                        }
-                                    } else {
-                                        if (motionEvent.getRawY() - y < 0.95 * parentActivity.footerSlider.getHeight()) {
-                                            toY = parentActivity.footerTop + viewElement.getHeight();
-                                            parentActivity.footerOpened = true;
-                                            viewElement.setBackgroundColor(Color.parseColor("#f4f4f4"));
                                         } else {
-                                            toY = screenHeight - topOffset;
-                                            parentActivity.footerOpened = false;
-                                            viewElement.setBackground(parentActivity.getResources().getDrawable(R.drawable.footer_rounded));
+                                            toY = motionEvent.getRawY() - y;
                                         }
-                                    }
-                                    parentActivity.footerSlider.animate().y(toY).setDuration(100).start();
-                                    view.animate().y(toY - viewElement.getHeight()).setDuration(100).start();
-                                    break;
-                                default:
-                                    return false;
+                                        parentActivity.footerSlider.animate().y(toY).setDuration(0).start();
+                                        view.animate().y(toY - viewElement.getHeight()).setDuration(0).start();
+                                        break;
+                                    case MotionEvent.ACTION_UP:
+                                        if (parentActivity.footerOpened) {
+                                            if (motionEvent.getRawY() - y > 0.05 * parentActivity.footerSlider.getHeight()) {
+                                                toY = screenHeight - topOffset;
+                                                parentActivity.footerOpened = false;
+                                                viewElement.setBackground(parentActivity.getResources().getDrawable(R.drawable.footer_rounded));
+                                            } else {
+                                                toY = parentActivity.footerTop + viewElement.getHeight();
+                                                parentActivity.footerOpened = true;
+                                                viewElement.setBackgroundColor(Color.parseColor("#f4f4f4"));
+                                            }
+                                        } else {
+                                            if (motionEvent.getRawY() - y < 0.95 * parentActivity.footerSlider.getHeight()) {
+                                                toY = parentActivity.footerTop + viewElement.getHeight();
+                                                parentActivity.footerOpened = true;
+                                                viewElement.setBackgroundColor(Color.parseColor("#f4f4f4"));
+                                            } else {
+                                                toY = screenHeight - topOffset;
+                                                parentActivity.footerOpened = false;
+                                                viewElement.setBackground(parentActivity.getResources().getDrawable(R.drawable.footer_rounded));
+                                            }
+                                        }
+                                        parentActivity.footerSlider.animate().y(toY).setDuration(100).start();
+                                        view.animate().y(toY - viewElement.getHeight()).setDuration(100).start();
+                                        break;
+                                    default:
+                                        return false;
+                                }
                             }
                         }
                         return true;
+
                     }
                 });
                 break;

@@ -2,7 +2,6 @@ package simpleapp.wheretobuy.adapters;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
 import android.net.Uri;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
@@ -58,23 +57,23 @@ public class OffersAdapter extends ArrayAdapter<Offer> {
         switch (offer.getAvailability()) {
             case 0:
                 availability.setText(R.string.available);
-                availability.setTextColor(Color.parseColor("#FF39762C"));
+                availability.setTextColor(context.getResources().getColor(R.color.green));
                 break;
             case 1:
                 availability.setText(R.string.available_in_week);
-                availability.setTextColor(Color.parseColor("#FFA3701E"));
+                availability.setTextColor(context.getResources().getColor(R.color.orange));
                 break;
             case 2:
                 availability.setText(R.string.available_more_week);
-                availability.setTextColor(Color.parseColor("#FFA3701E"));
+                availability.setTextColor(context.getResources().getColor(R.color.orange));
                 break;
             case 3:
                 availability.setText(R.string.available_wish);
-                availability.setTextColor(Color.parseColor("#FFA3701E"));
+                availability.setTextColor(context.getResources().getColor(R.color.orange));
                 break;
             default:
                 availability.setText(R.string.check_in_shop);
-                availability.setTextColor(Color.parseColor("#FFA3701E"));
+                availability.setTextColor(context.getResources().getColor(R.color.orange));
                 break;
         }
         String offerUrl;
@@ -90,7 +89,7 @@ public class OffersAdapter extends ArrayAdapter<Offer> {
         }
         switch (type) {
             case "offer_footer":
-                if (offer.getShop().getBestDistance() != -1 && offer.getShop().getBestDistance() != 1000000f) {
+                if (offer.getShop().getBestDistance() != -1) {
                     shopDistance.setVisibility(View.VISIBLE);
                     String distance = UsefulFunctions.getDistanceKilometersFormat(offer.getShop().getBestDistance());
                     shopDistance.setText(distance);

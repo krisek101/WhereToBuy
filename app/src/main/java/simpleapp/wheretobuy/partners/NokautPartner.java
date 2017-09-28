@@ -1,8 +1,6 @@
 package simpleapp.wheretobuy.partners;
 
-import android.os.Handler;
 import android.support.annotation.NonNull;
-import android.text.Html;
 import android.util.Log;
 
 import com.android.volley.AuthFailureError;
@@ -26,9 +24,9 @@ import java.util.Map;
 
 import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.constants.Constants;
+import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.models.AutoCompleteResult;
-import simpleapp.wheretobuy.models.Offer;
-import simpleapp.wheretobuy.models.Shop;
+import simpleapp.wheretobuy.tasks.onResponseNokautOfferTask;
 
 public class NokautPartner {
 
@@ -42,48 +40,25 @@ public class NokautPartner {
     }
 
     // method
-    public void showAutoCompleteCategories(String input) {
-        String url = getAutoCompleteCategoriesUrl(input);
-        requestAutoCompleteCategories(url, Constants.TAG_AUTOCOMPLETE_BY_CATEGORY, input);
-    }
-
     public void showAutoCompleteProducts(String input) {
-        String url = getAutoCompleteProductsUrl(input);
-        requestShowAutoCompleteProducts(url, Constants.TAG_AUTOCOMPLETE_BY_PRODUCT, input);
-    }
-
-    public void getAutoCompleteProducts(AutoCompleteResult autoCompleteResult) {
-        String url = getAutoCompleteProductsUrl(autoCompleteResult.getName());
-        requestAutoCompleteProducts(url, Constants.TAG_AUTOCOMPLETE_BY_PRODUCT, autoCompleteResult);
+        String url = getProductsUrl(input, -1);
+        requestShowAutoCompleteProducts(url, Constants.TAG_SHOW_AUTOCOMPLETE_PRODUCTS, input);
     }
 
     public void getMoreProducts(String name, int offset) {
-        String url = getMoreProductsUrl(name, offset);
+        String url = getProductsUrl(name, offset);
         this.offset = offset + 20;
         requestGetMoreProducts(url, Constants.TAG_MORE_PRODUCTS, name);
     }
 
-    public void getOffers(AutoCompleteResult result, boolean finish) {
+    public void getOffers(AutoCompleteResult result) {
         String url = getOffersUrl(result);
-        requestGetOffers(url, Constants.TAG_OFFERS, finish);
+        requestGetOffers(url, Constants.TAG_OFFERS);
     }
 
     // url
     @NonNull
-    private String getAutoCompleteCategoriesUrl(String input) {
-        StringBuilder urlString = new StringBuilder();
-        urlString.append(startLink);
-        urlString.append("categories?fields=id,title&filter%5Btitle%5D%5Blike%5D=");
-        try {
-            urlString.append(URLEncoder.encode(input, "utf8"));
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-        return urlString.toString();
-    }
-
-    @NonNull
-    private String getAutoCompleteProductsUrl(String input) {
+    private String getProductsUrl(String input, int offset) {
         StringBuilder urlString = new StringBuilder();
         urlString.append(startLink);
         urlString.append("products?quality=100&phrase=");
@@ -93,20 +68,9 @@ public class NokautPartner {
             e.printStackTrace();
         }
         urlString.append("&fields=id,title");
-        return urlString.toString();
-    }
-
-    @NonNull
-    private String getMoreProductsUrl(String input, int offset) {
-        StringBuilder urlString = new StringBuilder();
-        urlString.append(startLink);
-        urlString.append("products?quality=100&phrase=");
-        try {
-            urlString.append(URLEncoder.encode(input, "utf8"));
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+        if (offset != -1) {
+            urlString.append("&offset=" + offset);
         }
-        urlString.append("&offset=" + offset + "&fields=id,title");
         return urlString.toString();
     }
 
@@ -130,47 +94,12 @@ public class NokautPartner {
     }
 
     // request
-    private void requestAutoCompleteCategories(String url, String tag, final String input) {
+    private void requestShowAutoCompleteProducts(String url, final String tag, final String input) {
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
                 try {
-                    onResponseAutoCompleteByCategory(response, input);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                NetworkResponse response = error.networkResponse;
-                if (error instanceof ServerError && response != null) {
-                    try {
-                        String res = new String(response.data, HttpHeaderParser.parseCharset(response.headers, "utf-8"));
-                        Log.i("ERROR", res);
-                    } catch (UnsupportedEncodingException e1) {
-                        e1.printStackTrace();
-                    }
-                }
-            }
-        }) {
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError {
-                HashMap<String, String> headers = new HashMap<String, String>();
-                headers.put("Authorization", "Bearer " + Constants.NOKAUT_TOKEN);
-                headers.put("Content-Type", "application/json; charset=utf-8");
-                return headers;
-            }
-        };
-        jsonObjRequest.setTag(tag);
-        mapActivity.queue.add(jsonObjRequest);
-    }
-
-    private void requestShowAutoCompleteProducts(String url, String tag, final String input) {
-        JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                try {
+                    mapActivity.searchText.hideProgress();
                     onResponseShowAutoCompleteByProduct(response, input);
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -179,6 +108,7 @@ public class NokautPartner {
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                mapActivity.skapiecHelper.showAutoCompleteByProduct(input);
                 NetworkResponse response = error.networkResponse;
                 if (error instanceof ServerError && response != null) {
                     try {
@@ -202,48 +132,14 @@ public class NokautPartner {
         mapActivity.queue.add(jsonObjRequest);
     }
 
-    private void requestAutoCompleteProducts(String url, String tag, final AutoCompleteResult autoCompleteResult) {
-        JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                try {
-                    onResponseAutoCompleteByProduct(response, autoCompleteResult);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                NetworkResponse response = error.networkResponse;
-                if (error instanceof ServerError && response != null) {
-                    try {
-                        String res = new String(response.data, HttpHeaderParser.parseCharset(response.headers, "utf-8"));
-                        Log.i("ERROR", res);
-                    } catch (UnsupportedEncodingException e1) {
-                        e1.printStackTrace();
-                    }
-                }
-            }
-        }) {
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError {
-                HashMap<String, String> headers = new HashMap<String, String>();
-                headers.put("Authorization", "Bearer " + Constants.NOKAUT_TOKEN);
-                headers.put("Content-Type", "application/json; charset=utf-8");
-                return headers;
-            }
-        };
-        jsonObjRequest.setTag(tag);
-        mapActivity.queue.add(jsonObjRequest);
-    }
-
-    private void requestGetMoreProducts(String url, String tag, final String input) {
+    private void requestGetMoreProducts(String url, final String tag, final String input) {
+        mapActivity.loadingHelper.changeLoader(1, tag);
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
                 try {
                     onResponseGetMoreProducts(response, input);
+                    mapActivity.loadingHelper.changeLoader(-1, tag);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -251,6 +147,7 @@ public class NokautPartner {
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                mapActivity.loadingHelper.changeLoader(-1, tag);
                 NetworkResponse response = error.networkResponse;
                 if (error instanceof ServerError && response != null) {
                     try {
@@ -274,19 +171,17 @@ public class NokautPartner {
         mapActivity.queue.add(jsonObjRequest);
     }
 
-    private void requestGetOffers(String url, String tag, final boolean finish) {
+    private void requestGetOffers(String url, final String tag) {
+        mapActivity.loadingHelper.changeLoader(1, tag);
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                try {
-                    onResponseGetOffers(response, finish);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+                new onResponseNokautOfferTask(mapActivity, response, tag).execute();
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                mapActivity.loadingHelper.changeLoader(-1, tag);
                 NetworkResponse response = error.networkResponse;
                 if (error instanceof ServerError && response != null) {
                     try {
@@ -311,58 +206,54 @@ public class NokautPartner {
     }
 
     // response
-    private void onResponseAutoCompleteByCategory(JSONObject response, String input) throws JSONException {
-        JSONArray results = response.getJSONArray("categories");
-        // if no results, make query for products
-        if (results.length() == 0) {
-            this.showAutoCompleteProducts(input);
-        } else {
-            // show categories
-            for (int i = 0; i < results.length(); i++) {
-                JSONObject result = results.getJSONObject(i);
-                String title = result.getString("title");
-                String id = result.getString("id");
-                AutoCompleteResult autoCompleteResult = new AutoCompleteResult("category", title, id);
+    private void onResponseShowAutoCompleteByProduct(JSONObject response, String input) throws JSONException {
+        JSONArray ja = response.getJSONArray("products");
+        if (ja.length() != 0) {
+            for (int i = 0; i < ja.length(); i++) {
+                JSONObject c = ja.getJSONObject(i);
+                String title = c.getString("title");
+                String id = c.getString("id");
+                AutoCompleteResult autoCompleteResult = new AutoCompleteResult("product", title, id);
                 if (!mapActivity.autoCompleteResults.contains(autoCompleteResult)) {
                     mapActivity.autoCompleteResults.add(autoCompleteResult);
                 }
             }
+
+            // find most common suggestion
+            List<String> names = new ArrayList<>();
+            String[] splitInput = input.toLowerCase().split("\\s+");
+            String[] splitName;
+            String name, finalName;
+            for (AutoCompleteResult acr : mapActivity.autoCompleteResults) {
+                name = acr.getName().toLowerCase();
+                splitName = name.split("\\s+");
+                finalName = "";
+                for (String inputPart : splitInput) {
+                    for (String namePart : splitName) {
+                        if (namePart.contains(inputPart)) {
+                            if (!finalName.contains(namePart)) {
+                                finalName += namePart + " ";
+                            }
+                        }
+                    }
+                }
+                if (!finalName.isEmpty()) {
+                    names.add(finalName);
+                }
+            }
+
+            AutoCompleteResult sample = new AutoCompleteResult("product", input, "all");
+            if (!names.isEmpty()) {
+                sample.setName(UsefulFunctions.getMostCommonString(names));
+            }
+            if (mapActivity.autoCompleteResults.contains(sample)) {
+                mapActivity.autoCompleteResults.remove(sample);
+            }
+            mapActivity.autoCompleteResults.add(0, sample);
             mapActivity.searchText.swapSuggestions(mapActivity.autoCompleteResults);
+        } else {
+            mapActivity.skapiecHelper.showAutoCompleteByProduct(input);
         }
-    }
-
-    private void onResponseShowAutoCompleteByProduct(JSONObject response, String input) throws JSONException {
-        JSONArray ja = response.getJSONArray("products");
-
-        AutoCompleteResult sample = new AutoCompleteResult("product", input, "all");
-        if (ja.length() != 0 && !mapActivity.autoCompleteResults.contains(sample)) {
-            mapActivity.autoCompleteResults.add(sample);
-        }
-
-        for (int i = 0; i < ja.length(); i++) {
-            JSONObject c = ja.getJSONObject(i);
-            String title = c.getString("title");
-            String id = c.getString("id");
-            AutoCompleteResult autoCompleteResult = new AutoCompleteResult("product", title, id);
-            if (!mapActivity.autoCompleteResults.contains(autoCompleteResult)) {
-                mapActivity.autoCompleteResults.add(autoCompleteResult);
-            }
-        }
-        mapActivity.searchText.swapSuggestions(mapActivity.autoCompleteResults);
-    }
-
-    private void onResponseAutoCompleteByProduct(JSONObject response, AutoCompleteResult autoCompleteResult) throws JSONException {
-        JSONArray ja = response.getJSONArray("products");
-        for (int i = 0; i < ja.length(); i++) {
-            JSONObject c = ja.getJSONObject(i);
-            String title = c.getString("title");
-            String id = c.getString("id");
-            AutoCompleteResult acr = new AutoCompleteResult("product", title, id);
-            if (!mapActivity.autoCompleteResults.contains(acr)) {
-                mapActivity.autoCompleteResults.add(acr);
-            }
-        }
-        mapActivity.queryOffers(autoCompleteResult);
     }
 
     private void onResponseGetMoreProducts(JSONObject response, String input) throws JSONException {
@@ -376,188 +267,35 @@ public class NokautPartner {
             autoCompleteResult = new AutoCompleteResult("product", title, id);
             if (!mapActivity.autoCompleteResults.contains(autoCompleteResult)) {
                 mapActivity.autoCompleteResults.add(autoCompleteResult);
+                this.getOffers(autoCompleteResult);
             }
         }
 
         // queries
-        boolean finish = false;
+//        AutoCompleteResult r;
         if (offset <= 1000) {
             if (ja.length() >= 20) {
                 Log.i("OFFSET", offset + "");
                 mapActivity.nokautHelper.getMoreProducts(input, offset);
-            } else {
-                // No more products, get offers
-                for (int i = 0; i < mapActivity.autoCompleteResults.size() - 1; i++) {
-                    AutoCompleteResult r = mapActivity.autoCompleteResults.get(i);
-                    if (!r.getId().equals("all") && !r.getName().equals(input) && !r.getType().equals(Constants.OFFER_SKAPIEC)) {
-                        if (i == mapActivity.autoCompleteResults.size()-2){
-                            finish = true;
-                        }
-                        this.getOffers(r, finish);
-                    }
-                }
-            }
-        } else {
-            // Maximum quantity of products, get offers
-            for (int i = 0; i < mapActivity.autoCompleteResults.size() - 1; i++) {
-                AutoCompleteResult r = mapActivity.autoCompleteResults.get(i);
-                if (!r.getId().equals("all") && !r.getName().equals(input) && !r.getType().equals(Constants.OFFER_SKAPIEC)) {
-                    if (i == mapActivity.autoCompleteResults.size()-2){
-                        finish = true;
-                    }
-                    this.getOffers(r, finish);
-                }
             }
         }
-    }
-
-    private void onResponseGetOffers(JSONObject response, boolean finish) throws JSONException {
-        List<Shop> goodShops = new ArrayList<>();
-        if (response.has("offers")) {
-            JSONArray ja = response.getJSONArray("offers");
-            if (ja.length() != 0) {
-                Shop shopModel;
-                Offer offerModel;
-                for (int i = 0; i < ja.length(); i++) {
-                    // get JSON objects
-                    JSONObject offer = ja.getJSONObject(i);
-                    JSONObject shop = offer.getJSONObject("shop");
-
-                    // build temp models
-                    offerModel = buildTempOffer(offer);
-                    shopModel = buildTempShop(shop);
-
-                    // update min price
-                    if(offerModel.getPrice() < shopModel.getMinPrice()) {
-                        shopModel.setMinPrice(offerModel.getPrice());
-                    }
-
-                    // Assign shop to offer
-                    if (!mapActivity.shops.contains(shopModel)) {
-                        mapActivity.shops.add(shopModel);
-                    } else {
-                        for (Shop shop1 : mapActivity.shops) {
-                            if (shop1.getName().toLowerCase().equals(shopModel.getName().toLowerCase())) {
-                                if (offerModel.getPrice() < shop1.getMinPrice()) {
-                                    shop1.setMinPrice(offerModel.getPrice());
-                                }
-                                offerModel.setShop(shop1);
-                            }
-                        }
-                    }
-
-                    // update
-                    offerModel.setShop(shopModel);
-                    mapActivity.offers.add(offerModel);
-                }
-            }
-        }
-
-        // update footer info
-        mapActivity.changeFooterInfo();
-
-        // search shops with locations near user
-        if (finish) {
-            boolean isOnBlackList;
-            for (Shop shop : mapActivity.shops) {
-                // check if shop is on black list
-                isOnBlackList = false;
-                for (int p = 0; p < Constants.BLACK_LIST_SHOPS.length; p++) {
-                    if (shop.getName().toLowerCase().equals(Constants.BLACK_LIST_SHOPS[p].toLowerCase())) {
-                        isOnBlackList = true;
-                    }
-                }
-
-                // if shop is not on black list
-                if (!isOnBlackList) {
-                    goodShops.add(shop);
-                }
-            }
-
-            if (goodShops.isEmpty()) {
-                mapActivity.setLoading(false);
-            } else {
-                boolean finish2;
-                for (int i = 0; i < goodShops.size() - 1; i++) {
-                    Shop shop = goodShops.get(i);
-                    finish2 = i == goodShops.size() - 2;
-                    setShopLocations(shop, finish2);
-                }
-            }
-        }
-    }
-
-    // Others
-    public void setShopLocations(final Shop shop, final boolean finish) {
-        final Handler h = new Handler();
-        final int delay = 1000;
-        final Runnable[] runnable = new Runnable[1];
-        final boolean[] already = {true};
-        h.postDelayed(new Runnable() {
-            public void run() {
-                if (mapActivity.userLocation != null) {
-                    // get shops locations
-                    if (already[0]) {
-                        already[0] = false;
-
-                        mapActivity.googleHelper.searchNearbyShops(shop, Constants.SEARCH_RADIUS, finish);
-
-                        h.removeCallbacks(runnable[0]);
-                    }
-                }
-                runnable[0] = this;
-                h.postDelayed(runnable[0], delay);
-            }
-        }, delay);
-    }
-
-    private Offer buildTempOffer(JSONObject offer) throws JSONException {
-        String offerClickUrl = "", offerCategory = "", offerTitle = "", offerProducer = "", offerPhotoId = "", offerDesc = "";
-        int offerAvailability = 4;
-        double offerPrice = 0;
-
-        if (offer.has("availability")) {
-            offerAvailability = offer.getInt("availability");
-        }
-        if (offer.has("price")) {
-            offerPrice = offer.getDouble("price");
-        }
-        if (offer.has("title")) {
-            offerTitle = Html.fromHtml(offer.getString("title")).toString();
-        }
-        if (offer.has("click_url")) {
-            offerClickUrl = offer.getString("click_url");
-        }
-        if (offer.has("category")) {
-            offerCategory = offer.getString("category");
-        }
-        if (offer.has("producer")) {
-            offerProducer = offer.getString("producer");
-        }
-        if (offer.has("description_short")) {
-            offerDesc = offer.getString("description_short");
-        }
-        if (offer.has("photo_id")) {
-            offerPhotoId = offer.getString("photo_id");
-        }
-        return new Offer(Constants.OFFER_NOKAUT, offerAvailability, offerPrice, offerTitle, offerCategory, offerDesc, offerClickUrl, offerProducer, offerPhotoId);
-    }
-
-    private Shop buildTempShop(JSONObject shop) throws JSONException {
-        String shopId = "", shopName = "", shopUrl = "", shopLogoUrl = "";
-
-        if (shop.has("name")) {
-            shopName = shop.getString("name");
-        }
-        if (shop.has("id")) {
-            shopId = shop.getString("id");
-        }
-        if (shop.has("url")) {
-            shopUrl = shop.getString("url");
-        }
-        if (shop.has("url_logo")) {
-            shopLogoUrl = shop.getString("url_logo");
-        }
-        return new Shop(Constants.OFFER_NOKAUT, shopName, shopUrl, shopLogoUrl, shopId);
+//            } else {
+//                // No more products, get offers
+//                for (int i = 0; i < mapActivity.autoCompleteResults.size() - 1; i++) {
+//                    r = mapActivity.autoCompleteResults.get(i);
+//                    if (!r.getType().equals(Constants.OFFER_SKAPIEC) && !r.getId().equals("all")) {
+//                        this.getOffers(r);
+//                    }
+//                }
+//            }
+//        } else {
+//            // Maximum quantity of products, get offers
+//            for (int i = 0; i < mapActivity.autoCompleteResults.size() - 1; i++) {
+//                r = mapActivity.autoCompleteResults.get(i);
+//                if (!r.getType().equals(Constants.OFFER_SKAPIEC) && !r.getId().equals("all")) {
+//                    this.getOffers(r);
+//                }
+//            }
+//        }
     }
 }

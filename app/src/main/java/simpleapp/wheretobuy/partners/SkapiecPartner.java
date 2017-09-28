@@ -1,7 +1,6 @@
 package simpleapp.wheretobuy.partners;
 
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.Base64;
 import android.util.Log;
 
@@ -23,16 +22,18 @@ import java.util.Map;
 
 import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.constants.Constants;
+import simpleapp.wheretobuy.constants.UsefulFunctions;
+import simpleapp.wheretobuy.models.AutoCompleteResult;
 import simpleapp.wheretobuy.models.Offer;
-import simpleapp.wheretobuy.models.Shop;
+import simpleapp.wheretobuy.tasks.onResponseSkapiecOfferTask;
 
 public class SkapiecPartner {
 
     private String startLink;
     private MapActivity mapActivity;
     private String basicAuth = "Basic " + Base64.encodeToString((Constants.SKAPIEC_LOGIN + ":" + Constants.SKAPIEC_PASS).getBytes(), Base64.NO_WRAP);
-    public String bestCategory;
-    private List<Offer> offers = new ArrayList<>();
+    private List<String> categories = new ArrayList<>();
+//    private List<Offer> offers = new ArrayList<>();
 
     public SkapiecPartner(String startLink, MapActivity mapActivity) {
         this.startLink = startLink;
@@ -40,27 +41,28 @@ public class SkapiecPartner {
     }
 
     // method
-    public void searchMostCommonCategory(String input) {
-        bestCategory = null;
-        String url = getSearchOffersFilterUrl(input, 0);
-        Log.i("LINK", url);
-        requestSearchMostCommonCategory(url, Constants.TAG_PRODUCTS_SKAPIEC, input);
-    }
-
-//    public void searchCategory(String input, int departmentId) {
-//        String url = getSearchCategoryUrl(departmentId);
-//        requestSearchCategory(url, Constants.TAG_PRODUCTS_SKAPIEC, input, departmentId);
-//    }
-
-    private void searchOffersByCategory(String input, int offset) {
+    public void searchMostCommonCategory(String input, int offset) {
         String url = getSearchOffersFilterUrl(input, offset);
         Log.i("LINK", url);
-        requestSearchOffersByCategory(url, Constants.TAG_PRODUCTS_SKAPIEC, input);
+        requestSearchMostCommonCategory(url, Constants.TAG_MOST_COMMON_CATEGORY_SKAPIEC, input);
     }
 
-    private void getOfferInfo(Offer o, boolean finish) {
+    private void searchOffersByCategoryId(String input, int offset, String categoryID) {
+        if (categoryID != null) {
+            String url = getSearchOffersByCategoryIdUrl(input, offset, categoryID);
+            Log.i("LINK", url);
+            requestSearchOffersWithBestCategory(url, Constants.TAG_PRODUCTS_SKAPIEC);
+        }
+    }
+
+    private void getOfferInfo(Offer o) {
         String url = getBestPriceOffersUrl(o.getId());
-        requestOfferInfo(url, Constants.TAG_OFFERS_SKAPIEC, o, finish);
+        requestOfferInfo(url, Constants.TAG_OFFERS_SKAPIEC, o);
+    }
+
+    public void showAutoCompleteByProduct(String input) {
+        String url = getSearchOffersFilterUrl(input, 0);
+        requestShowAutoCompleteProducts(url, Constants.TAG_SHOW_AUTOCOMPLETE_PRODUCTS_SKAPIEC, input);
     }
 
     // url
@@ -72,9 +74,18 @@ public class SkapiecPartner {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
-        if (bestCategory != null) {
-            u += "&id_category=" + bestCategory;
+        return u;
+    }
+
+    @NonNull
+    private String getSearchOffersByCategoryIdUrl(String input, int offset, String categoryID) {
+        String u = startLink + "searchOffersFilters.json?amount=20&offset=" + offset + "&q=";
+        try {
+            u += URLEncoder.encode(input, "utf8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
+        u += "&id_category=" + categoryID;
         return u;
     }
 
@@ -84,22 +95,19 @@ public class SkapiecPartner {
 //    }
 
     @NonNull
-    private String getSearchCategoryUrl(int id) {
-        return startLink + "listCategories.json?department=" + id;
-    }
-
-    @NonNull
     private String getBestPriceOffersUrl(String id) {
         return startLink + "getOffersBestPrice.json?id_skapiec=" + id + "&amount=20";
     }
 
     // request
-    private void requestSearchMostCommonCategory(String url, String tag, final String input) {
+    private void requestSearchMostCommonCategory(String url, final String tag, final String input) {
+        mapActivity.loadingHelper.changeLoader(1, tag);
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
                 try {
                     onResponseSearchMostCommonCategory(response, input);
+                    mapActivity.loadingHelper.changeLoader(-1, tag);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -107,6 +115,7 @@ public class SkapiecPartner {
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                mapActivity.loadingHelper.changeLoader(-1, tag);
             }
         }) {
             @Override
@@ -120,12 +129,12 @@ public class SkapiecPartner {
         mapActivity.queue.add(jsonObjRequest);
     }
 
-    private void requestSearchOffersByCategory(String url, String tag, final String input) {
+    private void requestShowAutoCompleteProducts(String url, final String tag, final String input) {
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
                 try {
-                    onResponseSearchOffersByCategory(response, input);
+                    onResponseShowAutoCompleteProducts(response, input);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -133,6 +142,11 @@ public class SkapiecPartner {
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                AutoCompleteResult err = new AutoCompleteResult("error", "Wystąpił błąd, spróbuj ponownie później.", "noResponseFromServer");
+                List<AutoCompleteResult> errs = new ArrayList<>();
+                errs.add(err);
+                mapActivity.searchText.swapSuggestions(errs);
+                mapActivity.searchText.hideProgress();
             }
         }) {
             @Override
@@ -146,13 +160,14 @@ public class SkapiecPartner {
         mapActivity.queue.add(jsonObjRequest);
     }
 
-    private void requestOfferInfo(String url, String tag, final Offer o, final boolean finish) {
-        Log.i("Link 2", url);
+    private void requestSearchOffersWithBestCategory(String url, final String tag) {
+        mapActivity.loadingHelper.changeLoader(1, tag);
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
                 try {
-                    onResponseOfferInfo(response, o, finish);
+                    onResponseSearchOffersByCategory(response);
+                    mapActivity.loadingHelper.changeLoader(-1, tag);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -160,6 +175,31 @@ public class SkapiecPartner {
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                mapActivity.loadingHelper.changeLoader(-1, tag);
+            }
+        }) {
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                HashMap<String, String> headers = new HashMap<String, String>();
+                headers.put("Authorization", basicAuth);
+                return headers;
+            }
+        };
+        jsonObjRequest.setTag(tag);
+        mapActivity.queue.add(jsonObjRequest);
+    }
+
+    private void requestOfferInfo(String url, final String tag, final Offer o) {
+        mapActivity.loadingHelper.changeLoader(1, tag);
+        JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                new onResponseSkapiecOfferTask(mapActivity, response, o, tag).execute();
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                mapActivity.loadingHelper.changeLoader(-1, tag);
             }
         }) {
             @Override
@@ -174,48 +214,84 @@ public class SkapiecPartner {
         mapActivity.queue.add(jsonObjRequest);
     }
 
-//    private void requestSearchCategory(String url, String tag, final String input, final int dep) {
-//        JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
-//            @Override
-//            public void onResponse(JSONObject response) {
-//                try {
-//                    onResponseCategory(response, input, dep);
-//                } catch (JSONException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        }, new Response.ErrorListener() {
-//            @Override
-//            public void onErrorResponse(VolleyError error) {
-//            }
-//        }) {
-//            @Override
-//            public Map<String, String> getHeaders() throws AuthFailureError {
-//                HashMap<String, String> headers = new HashMap<>();
-//                headers.put("Authorization", basicAuth);
-//                headers.put("Content-Type", "application/json; charset=utf-8");
-//                return headers;
-//            }
-//        };
-//        jsonObjRequest.setTag(tag);
-//        mapActivity.queue.add(jsonObjRequest);
-//    }
-
     // response
     private void onResponseSearchMostCommonCategory(JSONObject response, String input) throws JSONException {
-        setBestCommonCategory(response);
-        if (bestCategory != null) {
-            this.searchOffersByCategory(input, 0);
+        JSONArray results = response.getJSONObject("components").getJSONArray("component");
+        JSONObject pagination = response.getJSONObject("pagination");
+        for (int i = 0; i < results.length(); i++) {
+            JSONObject jsonObject = results.getJSONObject(i);
+            String id = jsonObject.getString("id_skapiec");
+            String category = jsonObject.getString("link").replace("https://www.skapiec.pl/cat/", "").replaceAll("/comp/" + id, "");
+            categories.add(category);
+        }
+
+        if (pagination.has("next") && pagination.getInt("offset") == 0) {
+            // get results from the second page
+            this.searchMostCommonCategory(input, 20);
+        } else {
+            // start searching offers by best popular category ID
+            this.searchOffersByCategoryId(input, 0, UsefulFunctions.getMostCommonString(categories));
+            categories.clear();
         }
     }
 
-    private void onResponseSearchOffersByCategory(JSONObject response, String input) throws JSONException {
-        List<Offer> tempOffers = getOffersListFromJSON(response, input);
-        Log.i("HERE", tempOffers.size() + "");
-        offers.addAll(tempOffers);
-        int offset = response.getJSONObject("pagination").getInt("offset");
+    private void onResponseShowAutoCompleteProducts(JSONObject response, String input) throws JSONException {
+        JSONArray results = response.getJSONObject("components").getJSONArray("component");
+        if (results.length() != 0) {
+            for (int i = 0; i < results.length(); i++) {
+                JSONObject c = results.getJSONObject(i);
+                String title = c.getString("name");
+                String id = c.getString("id_skapiec");
+                AutoCompleteResult autoCompleteResult = new AutoCompleteResult("product", title, id);
+                if (!mapActivity.autoCompleteResults.contains(autoCompleteResult)) {
+                    mapActivity.autoCompleteResults.add(autoCompleteResult);
+                }
+            }
+            // find most common suggestion
+            List<String> names = new ArrayList<>();
+            String[] splitInput = input.toLowerCase().split("\\s+");
+            String[] splitName;
+            String name, finalName;
+            for (AutoCompleteResult acr : mapActivity.autoCompleteResults) {
+                name = acr.getName().toLowerCase();
+                splitName = name.split("\\s+");
+                finalName = "";
+                for (String inputPart : splitInput) {
+                    for (String namePart : splitName) {
+                        if (namePart.contains(inputPart)) {
+                            if (!finalName.contains(namePart)) {
+                                finalName += namePart + " ";
+                            }
+                        }
+                    }
+                }
+                if (!finalName.isEmpty()) {
+                    names.add(finalName);
+                }
+            }
+
+            AutoCompleteResult sample = new AutoCompleteResult("product", input, "all");
+            if (!names.isEmpty()) {
+                sample.setName(UsefulFunctions.getMostCommonString(names));
+            }
+            if (mapActivity.autoCompleteResults.contains(sample)) {
+                mapActivity.autoCompleteResults.remove(sample);
+            }
+            mapActivity.autoCompleteResults.add(0, sample);
+            mapActivity.searchText.swapSuggestions(mapActivity.autoCompleteResults);
+        } else {
+            AutoCompleteResult error = new AutoCompleteResult("error", "Brak podpowiedzi.", "noSuggestions");
+            mapActivity.autoCompleteResults.add(error);
+            mapActivity.searchText.swapSuggestions(mapActivity.autoCompleteResults);
+        }
+    }
+
+    private void onResponseSearchOffersByCategory(JSONObject response) throws JSONException {
+        List<Offer> tempOffers = getOffersListFromJSON(response);
+//        offers.addAll(tempOffers);
+//        int offset = response.getJSONObject("pagination").getInt("offset");
 //        if (response.getJSONObject("pagination").has("next") && offset < 20) {
-//            searchOffersByCategory(input, offset + 20);
+//            searchOffersByCategoryId(input, offset + 20);
 //        } else {
 //            boolean finish = false;
 //            for (int i = 0; i < 10; i++) {
@@ -225,126 +301,13 @@ public class SkapiecPartner {
 //                this.getOfferInfo(offers.get(i), finish);
 //            }
 //        }
-        for (Offer o : tempOffers) {
-            this.getOfferInfo(o, false);
+        for (Offer offer : tempOffers) {
+            this.getOfferInfo(offer);
         }
     }
-
-    private void onResponseOfferInfo(JSONObject response, Offer offer, boolean finish) throws JSONException {
-        response = response.getJSONArray("component").getJSONObject(0);
-        JSONArray results = response.getJSONObject("offers").getJSONArray("offer");
-        Log.i("Quantity", results.length() + " offers for: " + response.getString("name"));
-//
-//        offers.remove(offer);
-//        if (finish) {
-//            if (!offers.isEmpty()) {
-//                int max = offers.size();
-//                if (max > 10) {
-//                    max = 10;
-//                }
-//                finish = false;
-//                for (int i = 0; i < max; i++) {
-//                    if (i == max - 1) {
-//                        finish = true;
-//                    }
-//                    this.getOfferInfo(offers.get(i), finish);
-//                }
-//            }
-//        }
-
-        String dealer, dealerLogo, dealerId;
-        double price;
-
-        for (int i = 0; i < results.length(); i++) {
-            Offer o = new Offer(offer.getType(), offer.getAvailability(), offer.getTitle(), offer.getClickUrl(), offer.getCategory(), offer.getPhotoId(), offer.getId());
-            JSONObject result = results.getJSONObject(i);
-            price = result.getDouble("price");
-            dealer = result.getString("dealer");
-            dealerId = result.getString("id_dealer");
-            Shop shop = new Shop(Constants.OFFER_SKAPIEC, dealer, dealerId);
-            if (!result.isNull("dealer_logo_url")) {
-                dealerLogo = result.getString("dealer_logo_url");
-                shop.setLogoUrl(dealerLogo);
-            }
-            o.setPrice(price);
-            o.setProducer(dealer);
-            o.setShop(shop);
-
-            if (!mapActivity.shops.contains(shop)) {
-                if (o.getPrice() < shop.getMinPrice()) {
-                    shop.setMinPrice(o.getPrice());
-                }
-                mapActivity.shops.add(shop);
-                // get locations
-                boolean is = false;
-                for (int p = 0; p < Constants.BLACK_LIST_SHOPS.length; p++) {
-                    if (shop.getName().toLowerCase().equals(Constants.BLACK_LIST_SHOPS[p].toLowerCase())) {
-                        is = true;
-                    }
-                }
-                if (!is) {
-                    mapActivity.nokautHelper.setShopLocations(shop, false);
-                }
-            } else {
-                for (Shop shop1 : mapActivity.shops) {
-                    if (shop1.getName().toLowerCase().equals(shop.getName().toLowerCase())) {
-                        if (o.getPrice() < shop1.getMinPrice()) {
-                            shop1.setMinPrice(o.getPrice());
-                        }
-                        o.setShop(shop1);
-                    }
-                }
-            }
-
-            if (!mapActivity.offers.contains(o)) {
-                mapActivity.offers.add(o);
-            }
-            mapActivity.changeFooterInfo();
-        }
-    }
-
-//    private void onResponseCategory(JSONObject response, String input, int dep) throws JSONException {
-//        JSONArray categories = response.getJSONArray("category");
-//        String name;
-//        for (int i = 0; i < categories.length(); i++) {
-//            JSONObject category = categories.getJSONObject(i);
-//            name = category.getString("name");
-//            if (name.contains(input)) {
-//                categoryId = category.getString("id");
-//                ;
-//                break;
-//            }
-//        }
-//        if (categoryId == null) {
-//            if (dep != 29) {
-//                this.searchCategory(input, getNextDepartment(dep));
-//            }
-//        } else {
-//            // search offers from category
-//            this.searchOffersByCategory("", 0);
-//        }
-//    }
 
     // others
-    private void setBestCommonCategory(JSONObject response) throws JSONException {
-        JSONArray results = response.getJSONObject("components").getJSONArray("component");
-        List<Integer> categories = new ArrayList<>();
-
-        for (int i = 0; i < results.length(); i++) {
-            JSONObject jsonObject = results.getJSONObject(i);
-            String id = jsonObject.getString("id_skapiec");
-            String category = jsonObject.getString("link").replace("https://www.skapiec.pl/cat/", "").replaceAll("/comp/" + id, "");
-            categories.add(Integer.parseInt(category));
-        }
-        Log.i("CATEGORIES", categories.toString());
-        bestCategory = String.valueOf(mostCommonCategory(categories));
-        Log.i("COMMON_CATEGORY", bestCategory);
-        if (bestCategory.equals("null")) {
-            bestCategory = null;
-        }
-    }
-
-    private List<Offer> getOffersListFromJSON(JSONObject response, String input) throws JSONException {
+    private List<Offer> getOffersListFromJSON(JSONObject response) throws JSONException {
         JSONArray results = response.getJSONObject("components").getJSONArray("component");
         List<Offer> offers = new ArrayList<>();
 
@@ -362,33 +325,4 @@ public class SkapiecPartner {
         }
         return offers;
     }
-
-    @Nullable
-    private Integer mostCommonCategory(List<Integer> list) {
-        Map<Integer, Integer> map = new HashMap<>();
-
-        for (Integer t : list) {
-            Integer val = map.get(t);
-            map.put(t, val == null ? 1 : val + 1);
-        }
-
-        Map.Entry<Integer, Integer> max = null;
-
-        for (Map.Entry<Integer, Integer> e : map.entrySet()) {
-            if (max == null || e.getValue() > max.getValue())
-                max = e;
-        }
-
-        return max != null ? max.getKey() : null;
-    }
-
-//    private int getNextDepartment(int dep) {
-//        for (int i = 0; i < Constants.DEPARTMENTS_IDS_SKAPIEC.length; i++) {
-//            int id = Constants.DEPARTMENTS_IDS_SKAPIEC[i];
-//            if (id == dep) {
-//                return Constants.DEPARTMENTS_IDS_SKAPIEC[i + 1];
-//            }
-//        }
-//        return 0;
-//    }
 }

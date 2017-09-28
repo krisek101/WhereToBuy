@@ -14,6 +14,7 @@ import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Currency;
+import java.util.List;
 import java.util.Locale;
 
 public class UsefulFunctions {
@@ -68,5 +69,29 @@ public class UsefulFunctions {
             }
         }
         return input;
+    }
+
+    public static String getMostCommonString(List<String> list) {
+        String previous = null;
+        int bestCount = 0;
+        int count = 1;
+        String bestString = null;
+
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).equals(previous)) {
+                count++;
+            } else {
+                count = 1;
+            }
+
+            if (count > bestCount) {
+                bestCount = count;
+                bestString = list.get(i);
+            }
+
+            previous = list.get(i);
+        }
+
+        return bestString;
     }
 }

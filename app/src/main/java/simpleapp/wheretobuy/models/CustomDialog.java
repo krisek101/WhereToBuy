@@ -21,9 +21,10 @@ import java.util.List;
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.adapters.SectionsPageAdapter;
+import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.fragments.TabOffersInfoWindowFragment;
 import simpleapp.wheretobuy.fragments.TabShopFragment;
-import simpleapp.wheretobuy.tasks.GeocoderTask;
+import simpleapp.wheretobuy.tasks.GeocodeTask;
 
 public class CustomDialog extends DialogFragment implements View.OnClickListener {
 
@@ -51,7 +52,7 @@ public class CustomDialog extends DialogFragment implements View.OnClickListener
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // init
-        View view = inflater.inflate(R.layout.offers_list_window, container);
+        View view = inflater.inflate(R.layout.marker_window_shop, container);
         Shop shop = offersByPosition.get(0).getShop();
 
         ViewPager mInfoWindowViewPager = (ViewPager) view.findViewById(R.id.info_window_pager);
@@ -80,15 +81,22 @@ public class CustomDialog extends DialogFragment implements View.OnClickListener
         shopName.setText(shop.getName());
         if (shopLocation != null) {
             if (shopLocation.getAddress().isEmpty()) {
-                new GeocoderTask(mapActivity, shopLocation.getLocation(), shopAddress).execute();
+                new GeocodeTask(mapActivity, shopLocation.getLocation(), shopAddress).execute();
             } else {
                 shopAddress.setText(shopLocation.getAddress());
             }
         } else {
             shopAddress.setVisibility(View.GONE);
         }
-        String logoUrl = "http://offers.gallery" + shop.getLogoUrl();
-        Picasso.with(mapActivity).load(logoUrl).into(shopLogo);
+        if(!shop.getLogoUrl().isEmpty()) {
+            String logoUrl = "";
+            if (shop.getType().equals(Constants.OFFER_SKAPIEC)) {
+                logoUrl = shop.getLogoUrl();
+            } else if (shop.getType().equals(Constants.OFFER_NOKAUT)) {
+                logoUrl = "http://offers.gallery" + shop.getLogoUrl();
+            }
+            Picasso.with(mapActivity).load(logoUrl).into(shopLogo);
+        }
 
         return view;
     }

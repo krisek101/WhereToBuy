@@ -29,28 +29,13 @@
         app:floatingSearch_menu="@menu/menu_search_text"
         app:floatingSearch_showVoiceInput="true"/>
 
-    <TextView
-        android:id="@+id/error_connected"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_below="@+id/search_text"
-        android:layout_centerHorizontal="true"
-        android:layout_marginEnd="5dp"
-        android:layout_marginStart="5dp"
-        android:background="@drawable/rounded_edittext"
-        android:gravity="center"
-        android:text="@string/no_internet_conn"
-        android:textColor="#9e3305"
-        android:textSize="16sp"
-        android:visibility="gone" />
-
     <RelativeLayout
         android:id="@+id/floating_button_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginBottom="25dp"
+        android:layout_marginBottom="75dp"
         android:layout_marginEnd="25dp"
         android:orientation="horizontal">
 

@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Gdzie Kupić</string>
-    <string name="my_location">Moja lokalizacja</string>
-    <string name="search_text">Wyszukaj tutaj</string>
+    <string name="my_location">Centrum wyszukiwania</string>
+    <string name="search_text">Gdzie kupić..</string>
     <string name="sort_by_price">Po cenie</string>
     <string name="sort_by_distance">Po odległości</string>
     <string name="shop_image">Shop image</string>
@@ -16,5 +16,10 @@
     <string name="mic">mic</string>
     <string name="icon">icon</string>
     <string name="exit">exit</string>
-    <string name="enter_address_here">Tutaj wpisz adres</string>
+    <string name="enter_address_here">Tutaj wpisz adres poszukiwań</string>
+    <string name="searching_offers">Trwa wyszukiwanie ofert</string>
+    <string name="get_my_location">Ustal moją lokalizację</string>
+    <string name="searching_centre">Centrum wyszukiwania</string>
+    <string name="error_internet_conn">Brak połączenia z Internetem</string>
+    <string name="state_localization">Trwa ustalanie lokalizacji..</string>
 </resources>

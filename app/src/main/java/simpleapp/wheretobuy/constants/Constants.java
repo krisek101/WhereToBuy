@@ -9,7 +9,8 @@ public class Constants {
     public static final int SPEECH_REQUEST_CODE = 1;
 
     // Tags
-    public static final String TAG_AUTOCOMPLETE_BY_PRODUCT = "TAG_AUTOCOMPLETE_BY_PRODUCT";
+    public static final String TAG_SHOW_AUTOCOMPLETE_PRODUCTS = "TAG_SHOW_AUTOCOMPLETE_PRODUCTS";
+    public static final String TAG_AUTOCOMPLETE_PRODUCTS = "TAG_AUTOCOMPLETE_PRODUCTS";
     public static final String TAG_AUTOCOMPLETE_BY_CATEGORY = "TAG_AUTOCOMPLETE_BY_CATEGORY";
     public static final String TAG_OFFERS = "TAG_OFFERS";
     public static final String TAG_PLACES = "TAG_PLACES";
@@ -19,12 +20,14 @@ public class Constants {
     public static final String TAG_PRODUCTS_SKAPIEC = "TAG_PRODUCTS_SKAPIEC";
     public static final String TAG_OFFERS_SKAPIEC = "TAG_OFFERS_SKAPIEC";
     public static final String OFFER_NOKAUT = "OFFER_NOKAUT";
+    public static final String TAG_MOST_COMMON_CATEGORY_SKAPIEC = "TAG_MOST_COMMON_CATEGORY_SKAPIEC";
+    public static final String TAG_USER_LOCATION = "TAG_USER_LOCATION";
+    public static final String TAG_NEARBY_SHOPS = "TAG_NEARBY_SHOPS";
 
     // Tokens and Keys
     public static final String NOKAUT_TOKEN = "1/c1d3e6f5f27737fe2cb0dfd5b0046743ae4297da1c446fbe1219b8db7475367c";
-    public static final String WEB_API_GOOGLE_KEY = "AIzaSyA_C2NPat715q0hNN_S_ltWo2e1agdP1jI";
-//    public static final String WEB_API_GOOGLE_KEY = "AIzaSyDflSpLotdTPuGtyeZEPNHHNZGVDsft040";
-
+//    public static final String WEB_API_GOOGLE_KEY = "AIzaSyA_C2NPat715q0hNN_S_ltWo2e1agdP1jI";
+    public static final String WEB_API_GOOGLE_KEY = "AIzaSyDflSpLotdTPuGtyeZEPNHHNZGVDsft040";
 
     // Constants
     public static final int SPLASH_TIME = 500;
@@ -39,10 +42,10 @@ public class Constants {
     public static final String SORT_BY_DISTANCE = "SORT_BY_DISTANCE";
     public static final int MAX_AUTOCOMPLETE_RESULTS = 7;
     public static final int SEARCH_RADIUS = 10000;
-    public static final int[] DEPARTMENTS_IDS_SKAPIEC = {0, 1, 2, 3, 4, 5, 6, 8, 10, 11, 12, 13, 14, 15, 16, 18, 19, 21, 22, 23, 24, 25, 28, 29};
 
     // Skapiec
     public static final String SKAPIEC_LOGIN = "k.gustalik@gmail.com";
     public static final String SKAPIEC_PASS = "abcde4321";
     public static final String OFFER_SKAPIEC = "OFFER_SKAPIEC";
+    public static final String TAG_SHOW_AUTOCOMPLETE_PRODUCTS_SKAPIEC = "TAG_SHOW_AUTOCOMPLETE_PRODUCTS_SKAPIEC";
 }
