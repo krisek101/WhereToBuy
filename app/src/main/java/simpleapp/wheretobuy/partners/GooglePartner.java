@@ -105,7 +105,9 @@ public class GooglePartner {
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                new onResponseGoogleNearbyShops(mapActivity, response, shop, tag).execute();
+                onResponseGoogleNearbyShops task = new onResponseGoogleNearbyShops(mapActivity, response, shop, tag);
+                task.execute();
+                mapActivity.nearbyShopsTasks.add(task);
             }
         }, new Response.ErrorListener() {
             @Override

@@ -22,10 +22,10 @@ import simpleapp.wheretobuy.models.ShopLocation;
 
 public class onResponseGoogleNearbyShops extends AsyncTask<Void, Void, Void> {
 
-    MapActivity mapActivity;
-    JSONObject response;
-    String tag;
-    Shop shop;
+    private MapActivity mapActivity;
+    private JSONObject response;
+    private String tag;
+    private Shop shop;
 
     public onResponseGoogleNearbyShops(MapActivity mapActivity, JSONObject response, Shop shop, String tag) {
         this.mapActivity = mapActivity;
@@ -49,7 +49,7 @@ public class onResponseGoogleNearbyShops extends AsyncTask<Void, Void, Void> {
                     JSONObject c = ja.getJSONObject(i);
                     if (c.has("name")) {
                         name = c.getString("name");
-                        if (name.toLowerCase().replaceAll(".pl","").replaceAll("\\s+","").contains(shop.getName().toLowerCase().replaceAll(".pl","").replaceAll("\\s+",""))) {
+                        if (name.toLowerCase().replaceAll(".pl","").replaceAll(".com", "").replaceAll("\\s+","").contains(shop.getName().toLowerCase().replaceAll(".pl","").replaceAll(".com", "").replaceAll("\\s+",""))) {
                             JSONObject locationJSON = c.getJSONObject("geometry").getJSONObject("location");
                             location = new LatLng(locationJSON.getDouble("lat"), locationJSON.getDouble("lng"));
 
@@ -100,7 +100,7 @@ public class onResponseGoogleNearbyShops extends AsyncTask<Void, Void, Void> {
                 o.setShop(shop);
             }
         }
-
+        mapActivity.offersAdapter.notifyDataSetChanged();
         mapActivity.loadingHelper.changeLoader(-1, tag);
     }
 }

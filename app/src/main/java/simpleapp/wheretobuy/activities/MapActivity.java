@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
@@ -98,6 +99,9 @@ import simpleapp.wheretobuy.partners.GooglePartner;
 import simpleapp.wheretobuy.partners.NokautPartner;
 import simpleapp.wheretobuy.partners.SkapiecPartner;
 import simpleapp.wheretobuy.tasks.GeocodeTask;
+import simpleapp.wheretobuy.tasks.onResponseGoogleNearbyShops;
+import simpleapp.wheretobuy.tasks.onResponseNokautOfferTask;
+import simpleapp.wheretobuy.tasks.onResponseSkapiecOfferTask;
 
 import static simpleapp.wheretobuy.constants.Constants.SPEECH_REQUEST_CODE;
 
@@ -132,12 +136,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public List<AutoCompleteResult> lastAutoCompleteResults = new ArrayList<>();
 
     // Others
-    public RequestQueue queue;
     public LatLng tempPosition;
     public boolean getMyLocationButtonClicked = false;
     public AlertDialog changeLocationDialog;
-    public ShopsAdapter shopsAdapter;
-    public ListView shopsListView;
     public LoadingHelper loadingHelper;
     public boolean isOnline;
 
@@ -145,6 +146,16 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public GooglePartner googleHelper;
     public NokautPartner nokautHelper;
     public SkapiecPartner skapiecHelper;
+
+    // Tasks
+    public RequestQueue queue;
+    public List<onResponseGoogleNearbyShops> nearbyShopsTasks = new ArrayList<>();
+    public List<onResponseNokautOfferTask> nokautOffersTasks = new ArrayList<>();
+    public List<onResponseSkapiecOfferTask> skapiecOffersTasks = new ArrayList<>();
+
+    // Adapters
+    public OffersAdapter offersAdapter;
+    public ShopsAdapter shopsAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -159,7 +170,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         setListeners();
         initViewPagers();
         changeFooterInfo();
-//        checkOnline();
+        checkOnline();
+
+        offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
+        shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops, this);
     }
 
     private void initPartners() {
@@ -312,6 +326,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         listenerHelper.setListener(footer, "touch");
         listenerHelper.setListener(getMyLocation, "click");
         listenerHelper.setListener(changeLocation, "click");
+        listenerHelper.setListener(findViewById(R.id.cancel_button), "click");
     }
 
     private void initSearchText() {
@@ -388,7 +403,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     }
                     skapiecHelper.searchMostCommonCategory(autoCompleteResult.getName(), 0);
                     addLastAutoCompleteResult(autoCompleteResult);
-//                    changeFooterInfo();
+                    changeFooterInfo();
                 } else {
                     autoCompleteResult.setName("");
                 }
@@ -436,10 +451,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         });
     }
 
-    private void setAutocompleteListByInput(AutoCompleteResult autoCompleteResult) {
-
-    }
-
     private void addLastAutoCompleteResult(AutoCompleteResult autoCompleteResult) {
         if (lastAutoCompleteResults != null) {
             if (lastAutoCompleteResults.size() == Constants.MAX_AUTOCOMPLETE_RESULTS) {
@@ -469,7 +480,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         // cancel queue
         if (queue != null) {
             queue.cancelAll(Constants.TAG_SHOW_AUTOCOMPLETE_PRODUCTS);
-            loadingHelper.clearAllRequests();
+            loadingHelper.stopSearching();
         }
         searchText.hideProgress();
         goToShopButton.setVisibility(View.GONE);
@@ -845,6 +856,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         } else {
             if (loadingHelper.isLoading) {
                 // set Visibility
+                ImageView cancelImageView = (ImageView) findViewById(R.id.cancel_button);
+                cancelImageView.setColorFilter(getResources().getColor(R.color.black), PorterDuff.Mode.SRC_ATOP);
+
                 stateFinish.setVisibility(View.GONE);
                 stateStart.setVisibility(View.GONE);
                 stateLoading.setVisibility(View.VISIBLE);
@@ -859,18 +873,19 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 TextView rightText = (TextView) findViewById(R.id.outside_text);
                 middleText.setTypeface(null, Typeface.BOLD);
 
-                final OffersAdapter offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
+                offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
                 shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops, this);
+
                 int outside, nearMe = 0;
-                for (Shop s : shops) {
-                    if(s.getBestDistance() != -1){
-                        nearMe += getOffersByShop(s).size();
+                for(Offer o : offers){
+                    if(o.getShop().getBestDistance() != -1){
+                        nearMe++;
                     }
                 }
                 outside = offers.size() - nearMe;
 
                 // UI - footer shops
-                shopsListView = (ListView) findViewById(R.id.footer_shops);
+                final ListView shopsListView = (ListView) findViewById(R.id.footer_shops);
                 final Button sortShopsByPriceView = (Button) findViewById(R.id.sort_shops_by_price);
                 final Button sortShopsByDistanceView = (Button) findViewById(R.id.sort_shops_by_distance);
                 final String[] sortShopsStatus = {Constants.SORT_BY_DISTANCE};
@@ -893,7 +908,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                         if (sortOffersStatus[0].equals(Constants.SORT_BY_DISTANCE)) {
                             changeFilterClicked(1, sortOffersByDistanceView, sortOffersByPriceView);
                             sortOffersStatus[0] = Constants.SORT_BY_PRICE;
-                            sortOffers(sortOffersStatus[0], offersAdapter, offersListView);
+                            sortOffers(sortOffersStatus[0], offersListView);
                         }
                     }
                 });
@@ -903,7 +918,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                         if (sortOffersStatus[0].equals(Constants.SORT_BY_PRICE)) {
                             changeFilterClicked(0, sortOffersByDistanceView, sortOffersByPriceView);
                             sortOffersStatus[0] = Constants.SORT_BY_DISTANCE;
-                            sortOffers(sortOffersStatus[0], offersAdapter, offersListView);
+                            sortOffers(sortOffersStatus[0], offersListView);
                         }
                     }
                 });
@@ -915,7 +930,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                         if (sortShopsStatus[0].equals(Constants.SORT_BY_DISTANCE)) {
                             changeFilterClicked(1, sortShopsByDistanceView, sortShopsByPriceView);
                             sortShopsStatus[0] = Constants.SORT_BY_PRICE;
-                            sortShops(sortShopsStatus[0]);
+                            sortShops(sortShopsStatus[0], shopsListView);
                         }
                     }
                 });
@@ -925,7 +940,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                         if (sortShopsStatus[0].equals(Constants.SORT_BY_PRICE)) {
                             changeFilterClicked(0, sortShopsByDistanceView, sortShopsByPriceView);
                             sortShopsStatus[0] = Constants.SORT_BY_DISTANCE;
-                            sortShops(sortShopsStatus[0]);
+                            sortShops(sortShopsStatus[0], shopsListView);
                         }
                     }
                 });
@@ -935,16 +950,16 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 rightText.setText(String.valueOf(outside));
 
                 // Shops
-                sortShops(sortShopsStatus[0]);
+                sortShops(sortShopsStatus[0], shopsListView);
 
                 // Offers
-                sortOffers(sortOffersStatus[0], offersAdapter, offersListView);
+                sortOffers(sortOffersStatus[0], offersListView);
                 middleText.setText(getString(R.string.best_offer) + " " + UsefulFunctions.getPriceFormat(offers.get(0).getPrice()) + "");
             }
         }
     }
 
-    private void sortOffers(String sortType, OffersAdapter offersAdapter, ListView offersListView) {
+    private void sortOffers(String sortType, ListView offersListView) {
         switch (sortType) {
             case Constants.SORT_BY_PRICE:
                 Collections.sort(offers);
@@ -981,7 +996,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         offersAdapter.notifyDataSetChanged();
     }
 
-    private void sortShops(String sortType) {
+    private void sortShops(String sortType, ListView shopsListView) {
         switch (sortType) {
             case Constants.SORT_BY_PRICE:
                 quickSortShops(0, shops.size() - 1);
@@ -1058,8 +1073,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             List<Shop> goodShops = new ArrayList<>(shops);
             clearShopMarkers();
             for (Shop shop : shops) {
-                for (int p = 0; p < Constants.BLACK_LIST_SHOPS.length; p++) {
-                    if (shop.getName().toLowerCase().equals(Constants.BLACK_LIST_SHOPS[p].toLowerCase())) {
+                for (int p = 0; p < Constants.ONLINE_SHOPS.length; p++) {
+                    if (shop.getName().toLowerCase().equals(Constants.ONLINE_SHOPS[p].toLowerCase())) {
                         goodShops.remove(shop);
                     }
                 }

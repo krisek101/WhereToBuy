@@ -176,7 +176,9 @@ public class NokautPartner {
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                new onResponseNokautOfferTask(mapActivity, response, tag).execute();
+                onResponseNokautOfferTask task = new onResponseNokautOfferTask(mapActivity, response, tag);
+                task.execute();
+                mapActivity.nokautOffersTasks.add(task);
             }
         }, new Response.ErrorListener() {
             @Override

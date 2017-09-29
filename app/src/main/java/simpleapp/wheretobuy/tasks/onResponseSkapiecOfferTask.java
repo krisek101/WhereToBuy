@@ -16,10 +16,11 @@ import simpleapp.wheretobuy.models.Shop;
 
 public class onResponseSkapiecOfferTask extends AsyncTask<Void, Void, List<Shop>> {
 
-    MapActivity mapActivity;
-    JSONObject response;
-    Offer offer;
-    String tag;
+    private MapActivity mapActivity;
+    private JSONObject response;
+    private Offer offer;
+    private String tag;
+    private List<Offer> offers = new ArrayList<>();
 
     public onResponseSkapiecOfferTask(MapActivity mapActivity, JSONObject response, Offer offer, String tag) {
         this.mapActivity = mapActivity;
@@ -54,6 +55,7 @@ public class onResponseSkapiecOfferTask extends AsyncTask<Void, Void, List<Shop>
             String dealer, dealerLogo, dealerId;
             double price;
             for (int i = 0; i < results.length(); i++) {
+                // JSON to POJO
                 Offer o = new Offer(offer.getType(), offer.getAvailability(), offer.getTitle(), offer.getClickUrl(), offer.getCategory(), offer.getPhotoId(), offer.getId());
                 JSONObject result = results.getJSONObject(i);
                 price = result.getDouble("price");
@@ -66,30 +68,24 @@ public class onResponseSkapiecOfferTask extends AsyncTask<Void, Void, List<Shop>
                 }
                 o.setPrice(price);
                 o.setProducer(dealer);
-                o.setShop(shop);
 
-
-                Shop tempShop = null;
-                for (Shop s : mapActivity.shops) {
-                    if (s.equals(shop)) {
-                        tempShop = s;
-                    }
-                }
-
-                if (tempShop == null) {
+                // LONG TIME OPERATIONS
+                if (!mapActivity.shops.contains(shop)) {
+                    // create new shop
                     if (o.getPrice() < shop.getMinPrice()) {
                         shop.setMinPrice(o.getPrice());
                     }
                     if (o.getPrice() > shop.getMaxPrice()) {
                         shop.setMaxPrice(o.getPrice());
                     }
-                    o.getShop().setTotalCountOffers(1);
+                    shop.setTotalCountOffers(1);
                     mapActivity.shops.add(shop);
-                    mapActivity.offers.add(o);
+                    o.setShop(shop);
+                    offers.add(o);
                     // get locations
                     boolean is = false;
-                    for (int p = 0; p < Constants.BLACK_LIST_SHOPS.length; p++) {
-                        if (shop.getName().toLowerCase().equals(Constants.BLACK_LIST_SHOPS[p].toLowerCase())) {
+                    for (int p = 0; p < Constants.ONLINE_SHOPS.length; p++) {
+                        if (shop.getName().toLowerCase().equals(Constants.ONLINE_SHOPS[p].toLowerCase())) {
                             is = true;
                         }
                     }
@@ -97,18 +93,23 @@ public class onResponseSkapiecOfferTask extends AsyncTask<Void, Void, List<Shop>
                         uniqueShops.add(shop);
                     }
                 } else {
-                    List<Offer> offersFromShop = mapActivity.getOffersByShop(tempShop);
-                    if (!offersFromShop.contains(o)) {
-                        tempShop.setTotalCountOffers(tempShop.getTotalCountOffers() + 1);
-                        mapActivity.offers.add(o);
+                    // shop already exists
+                    if (!mapActivity.offers.contains(o)) {
+                        for (Shop shop1 : mapActivity.shops) {
+                            if (shop1.equals(shop)) {
+                                shop1.setTotalCountOffers(shop1.getTotalCountOffers() + 1);
+                                offers.add(o);
+                                if (o.getPrice() < shop1.getMinPrice()) {
+                                    shop1.setMinPrice(o.getPrice());
+                                }
+                                if (o.getPrice() > shop1.getMaxPrice()) {
+                                    shop1.setMaxPrice(o.getPrice());
+                                }
+                                o.setShop(shop1);
+                                break;
+                            }
+                        }
                     }
-                    if (o.getPrice() < tempShop.getMinPrice()) {
-                        tempShop.setMinPrice(o.getPrice());
-                    }
-                    if (o.getPrice() > tempShop.getMaxPrice()) {
-                        tempShop.setMaxPrice(o.getPrice());
-                    }
-                    o.setShop(tempShop);
                 }
             }
         } catch (JSONException e) {
@@ -123,6 +124,10 @@ public class onResponseSkapiecOfferTask extends AsyncTask<Void, Void, List<Shop>
         for (Shop shop : uniqueShops) {
             mapActivity.googleHelper.searchNearbyShops(shop, Constants.SEARCH_RADIUS);
         }
+//        endTime = System.nanoTime();
+//        Log.i("SKAPIEC ASYNCTASK", (endTime - startTime) / 1e6 + "");
+        mapActivity.offers.addAll(offers);
+        mapActivity.offersAdapter.notifyDataSetChanged();
         mapActivity.loadingHelper.changeLoader(-1, tag);
     }
 }

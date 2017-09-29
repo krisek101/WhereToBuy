@@ -60,6 +60,11 @@ public class ListenerHelper {
                         parentActivity.mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(parentActivity.userLocation, 13));
                         parentActivity.hideFabOptions();
                         break;
+                    case R.id.cancel_button:
+                        parentActivity.loadingHelper.stopSearching();
+                        parentActivity.loadingHelper.animateCamera();
+                        parentActivity.changeFooterInfo();
+                        break;
                 }
             }
         });
@@ -78,11 +83,11 @@ public class ListenerHelper {
                         float toY;
                         int screenHeight = UsefulFunctions.getScreenHeight(parentActivity);
 
-                        if(parentActivity.stateStart.getVisibility() == View.VISIBLE) {
+                        if (parentActivity.stateStart.getVisibility() == View.VISIBLE) {
                             if (gestureDetector.onTouchEvent(motionEvent)) {
                                 parentActivity.changeUserLocation();
                             }
-                        } else if(parentActivity.stateFinish.getVisibility() == View.VISIBLE) {
+                        } else if (parentActivity.stateFinish.getVisibility() == View.VISIBLE) {
                             if (gestureDetector.onTouchEvent(motionEvent)) {
                                 if (parentActivity.footerOpened) {
                                     toY = screenHeight - topOffset;

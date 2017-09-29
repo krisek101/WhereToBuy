@@ -7,12 +7,9 @@ import android.widget.TextView;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.Marker;
 
-import java.util.List;
-
 import simpleapp.wheretobuy.R;
 import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
-import simpleapp.wheretobuy.models.Offer;
 import simpleapp.wheretobuy.models.Shop;
 import simpleapp.wheretobuy.models.ShopLocation;
 
@@ -42,23 +39,13 @@ public class MarkerInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
         } else {
             ShopLocation shopLocation = mapActivity.getShopLocationByPosition(marker.getPosition());
             Shop shop = mapActivity.getShopByShopLocation(shopLocation);
-            List<Offer> offers = mapActivity.getOffersByShop(shop);
 
-            if (!offers.isEmpty()) {
-                Offer sampleOffer = offers.get(0);
-                double minPrice = 10000000, maxPrice = 0;
-
-                if (offers.size() == 1) {
-                    price.setText(UsefulFunctions.getPriceFormat(sampleOffer.getPrice()));
-                } else {
-                    for (Offer offer : offers) {
-                        if (offer.getPrice() > maxPrice) maxPrice = offer.getPrice();
-                        if (offer.getPrice() < minPrice) minPrice = offer.getPrice();
-                    }
-                    price.setText(UsefulFunctions.getPriceFormat(minPrice) + " - " + UsefulFunctions.getPriceFormat(maxPrice));
-                }
-                shopName.setText(shop.getName());
+            if (shop.getTotalCountOffers() == 1) {
+                price.setText(UsefulFunctions.getPriceFormat(shop.getMinPrice()));
+            } else {
+                price.setText(UsefulFunctions.getPriceFormat(shop.getMinPrice()) + " - " + UsefulFunctions.getPriceFormat(shop.getMaxPrice()));
             }
+            shopName.setText(shop.getName());
         }
         return myContentsView;
     }

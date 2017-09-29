@@ -17,9 +17,10 @@ import simpleapp.wheretobuy.models.Shop;
 
 public class onResponseNokautOfferTask extends AsyncTask<Void, Void, List<Shop>> {
 
-    MapActivity mapActivity;
-    JSONObject response;
-    String tag;
+    private MapActivity mapActivity;
+    private JSONObject response;
+    private String tag;
+    private List<Offer> offers = new ArrayList<>();
 
     public onResponseNokautOfferTask(MapActivity mapActivity, JSONObject response, String tag) {
         this.mapActivity = mapActivity;
@@ -37,13 +38,13 @@ public class onResponseNokautOfferTask extends AsyncTask<Void, Void, List<Shop>>
                     Shop shopModel;
                     Offer offerModel;
                     for (int i = 0; i < ja.length(); i++) {
-                        // build models
+                        // JSON to POJO
                         offerModel = buildOfferModel(ja.getJSONObject(i));
                         shopModel = buildShopModel(ja.getJSONObject(i).getJSONObject("shop"));
 
-                        // Assign shop to offer
+                        // LONG TIME OPERATIONS
                         if (!mapActivity.shops.contains(shopModel)) {
-                            // new shop - add it
+                            // create new shop
                             if (offerModel.getPrice() < shopModel.getMinPrice()) {
                                 shopModel.setMinPrice(offerModel.getPrice());
                             }
@@ -53,12 +54,12 @@ public class onResponseNokautOfferTask extends AsyncTask<Void, Void, List<Shop>>
                             shopModel.setTotalCountOffers(1);
                             mapActivity.shops.add(shopModel);
                             offerModel.setShop(shopModel);
-                            mapActivity.offers.add(offerModel);
+                            offers.add(offerModel);
 
                             // get locations
                             boolean is = false;
-                            for (int p = 0; p < Constants.BLACK_LIST_SHOPS.length; p++) {
-                                if (shopModel.getName().toLowerCase().equals(Constants.BLACK_LIST_SHOPS[p].toLowerCase())) {
+                            for (int p = 0; p < Constants.ONLINE_SHOPS.length; p++) {
+                                if (shopModel.getName().toLowerCase().equals(Constants.ONLINE_SHOPS[p].toLowerCase())) {
                                     is = true;
                                 }
                             }
@@ -78,7 +79,7 @@ public class onResponseNokautOfferTask extends AsyncTask<Void, Void, List<Shop>>
                                         }
                                         shop1.setTotalCountOffers(shop1.getTotalCountOffers() + 1);
                                         offerModel.setShop(shop1);
-                                        mapActivity.offers.add(offerModel);
+                                        offers.add(offerModel);
                                         break;
                                     }
                                 }
@@ -96,10 +97,14 @@ public class onResponseNokautOfferTask extends AsyncTask<Void, Void, List<Shop>>
     @Override
     protected void onPostExecute(List<Shop> uniqueShops) {
         super.onPostExecute(uniqueShops);
-        mapActivity.loadingHelper.changeLoader(-1, tag);
         for (Shop shop : uniqueShops) {
             mapActivity.googleHelper.searchNearbyShops(shop, Constants.SEARCH_RADIUS);
         }
+//        endTime = System.nanoTime();
+//        Log.i("NOKAUT ASYNCTASK", (endTime - startTime) / 1e6 + "");
+        mapActivity.offers.addAll(offers);
+        mapActivity.offersAdapter.notifyDataSetChanged();
+        mapActivity.loadingHelper.changeLoader(-1, tag);
     }
 
     private Offer buildOfferModel(JSONObject offer) throws JSONException {

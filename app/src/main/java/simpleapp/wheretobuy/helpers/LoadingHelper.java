@@ -1,5 +1,7 @@
 package simpleapp.wheretobuy.helpers;
 
+import android.os.AsyncTask;
+
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.LatLngBounds;
@@ -10,6 +12,9 @@ import java.util.Map;
 import simpleapp.wheretobuy.activities.MapActivity;
 import simpleapp.wheretobuy.models.Shop;
 import simpleapp.wheretobuy.models.ShopLocation;
+import simpleapp.wheretobuy.tasks.onResponseGoogleNearbyShops;
+import simpleapp.wheretobuy.tasks.onResponseNokautOfferTask;
+import simpleapp.wheretobuy.tasks.onResponseSkapiecOfferTask;
 
 public class LoadingHelper {
 
@@ -23,7 +28,7 @@ public class LoadingHelper {
 
     public void changeLoader(int value, String tag) {
         boolean exists = false;
-        if(!loaders.keySet().isEmpty()) {
+        if (!loaders.keySet().isEmpty()) {
             for (String loader : loaders.keySet()) {
                 if (loader.equals(tag)) {
                     exists = true;
@@ -48,7 +53,7 @@ public class LoadingHelper {
         }
         if (loaders.keySet().size() == zeroElements && isLoading) {
             animateCamera();
-            clearAllRequests();
+            stopSearching();
             isLoading = false;
         } else {
             isLoading = true;
@@ -56,7 +61,7 @@ public class LoadingHelper {
         mapActivity.changeFooterInfo();
     }
 
-    private void animateCamera(){
+    public void animateCamera() {
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
         boolean has = false;
         for (Shop s : mapActivity.shops) {
@@ -69,7 +74,7 @@ public class LoadingHelper {
                 }
             }
         }
-        if(mapActivity.userLocation != null) {
+        if (mapActivity.userLocation != null) {
             builder.include(mapActivity.userLocation);
         }
         LatLngBounds bounds = builder.build();
@@ -79,10 +84,29 @@ public class LoadingHelper {
         }
     }
 
-    public void clearAllRequests() {
+    public void stopSearching() {
+        // cancel all requests
         for (String loader : loaders.keySet()) {
             mapActivity.queue.cancelAll(loader);
         }
+
+        // cancel all AsyncTasks
+        for (onResponseNokautOfferTask task : mapActivity.nokautOffersTasks) {
+            if (task.getStatus().equals(AsyncTask.Status.RUNNING)) {
+                task.cancel(true);
+            }
+        }
+        for (onResponseSkapiecOfferTask task : mapActivity.skapiecOffersTasks) {
+            if (task.getStatus().equals(AsyncTask.Status.RUNNING)) {
+                task.cancel(true);
+            }
+        }
+        for (onResponseGoogleNearbyShops task : mapActivity.nearbyShopsTasks) {
+            if (task.getStatus().equals(AsyncTask.Status.RUNNING)) {
+                task.cancel(true);
+            }
+        }
+        isLoading = false;
     }
 
 }

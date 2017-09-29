@@ -32,12 +32,14 @@ public class Constants {
     // Constants
     public static final int SPLASH_TIME = 500;
     public static final String UNKNOWN_ADDRESS = "Adres nieznany";
-    public static final String[] BLACK_LIST_SHOPS = {"Mall.pl", "sklep bielsko-biała", "twójlombard.pl", "Bauer Fitness", "SKLEP SPORTOWY DWS-SPORT.PL",
+    public static final String[] ONLINE_SHOPS = {"Mall.pl", "sklep bielsko-biała", "twójlombard.pl", "Bauer Fitness", "SKLEP SPORTOWY DWS-SPORT.PL",
             "TopSlim", "KokiskashopPL", "ATHLETIC24.PL", "electronic-star", "przydomu.pl", "Makstor", "Sklep Puregreen - najlepsze wyciskarki do soków.", "Fit and Strong - Sklep Sportowy", "vidaXL",
             "SPORT-SHOP.PL", "EUKASA.pl", "x-tronik", "Malanet", "BESTCENA.PL", "Siglo.pl", "MegaKsiazki.pl", "Libristo.pl", "Gigant.pl", "royalpoint.pl", "niezlacena.pl", "InBook.pl", "www.cud.pl",
             "ErgoExpert.pl", "ExitoDesign", "Multilu.eu", "softx.pl", "alget.pl", "merlin.pl", "Akumulatorki.com.pl", "Spy007.pl", "Maxczysto - Profesjonalne Środki czystości", "SHOWERWIS-Profesjonalna obsługa inwestycji",
             "Picco.pl", "niszczarki-biurowe.pl AUTORYZOWANY SKLEP KOBRA HSM", "XXLgastro.pl", "Toyka Poland Leader Branży", "Szybkikoszyk.pl", "Balmea.pl", "zaopatrzenieBHP.pl", "Pasaż Biurowy",
-            "Fashally.com - Twoje gadżety", "Medical Depot", "Mercateo Polska", "ale.pl", "www.al.to", "Amazon.de", "Zadowolenie.pl", "winmar.pl", "marcusfoto.pl"};
+            "Fashally.com - Twoje gadżety", "Medical Depot", "Mercateo Polska", "ale.pl", "www.al.to", "Amazon.de", "Zadowolenie.pl", "winmar.pl", "marcusfoto.pl", "electro.pl", "sferis.pl", "sklep ishock.pl", "vipelektrogadzet.pl",
+            "neo24.pl", "CORE trends", "TaniaKsiazka.pl", "aurelus.pl", "www.epinokio.pl", "bonprix", "Iloko", "4HOME", "Urwis.pl", "Balladine.com", "MaxDrogeria.pl", "SuperKoszyk.pl", "aptekamini.pl",
+            "kufereknatury.pl", "iziaja.pl", "BIBEES.PL", "herbalbeauty.pl", "trueco.pl", "Salt and Pepper", "Szabloneria.pl", "Czas na buty", "La Redoute", "Naklej-to.pl", "Deco+Strefa"};
     public static final String SORT_BY_PRICE = "SORT_BY_PRICE";
     public static final String SORT_BY_DISTANCE = "SORT_BY_DISTANCE";
     public static final int MAX_AUTOCOMPLETE_RESULTS = 7;

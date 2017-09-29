@@ -194,7 +194,9 @@ public class SkapiecPartner {
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                new onResponseSkapiecOfferTask(mapActivity, response, o, tag).execute();
+                onResponseSkapiecOfferTask task = new onResponseSkapiecOfferTask(mapActivity, response, o, tag);
+                task.execute();
+                mapActivity.skapiecOffersTasks.add(task);
             }
         }, new Response.ErrorListener() {
             @Override
