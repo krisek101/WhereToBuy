@@ -6,7 +6,9 @@ import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.LatLngBounds;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import simpleapp.wheretobuy.activities.MapActivity;
@@ -20,7 +22,7 @@ public class LoadingHelper {
 
     private MapActivity mapActivity;
     private Map<String, Integer> loaders = new HashMap<>();
-    public boolean isLoading = true;
+    public boolean isLoading = false;
 
     public LoadingHelper(MapActivity mapActivity) {
         this.mapActivity = mapActivity;
@@ -51,6 +53,7 @@ public class LoadingHelper {
                 zeroElements++;
             }
         }
+
         if (loaders.keySet().size() == zeroElements && isLoading) {
             animateCamera();
             stopSearching();
@@ -64,7 +67,8 @@ public class LoadingHelper {
     public void animateCamera() {
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
         boolean has = false;
-        for (Shop s : mapActivity.shops) {
+        List<Shop> tempShops = new ArrayList<>(mapActivity.shops);
+        for (Shop s : tempShops) {
             if (!s.getLocations().isEmpty()) {
                 for (ShopLocation shopLocation : s.getLocations()) {
                     if (shopLocation.getMarker() != null) {
@@ -90,6 +94,8 @@ public class LoadingHelper {
             mapActivity.queue.cancelAll(loader);
         }
 
+        loaders.clear();
+
         // cancel all AsyncTasks
         for (onResponseNokautOfferTask task : mapActivity.nokautOffersTasks) {
             if (task.getStatus().equals(AsyncTask.Status.RUNNING)) {
@@ -106,6 +112,9 @@ public class LoadingHelper {
                 task.cancel(true);
             }
         }
+        mapActivity.nokautOffersTasks.clear();
+        mapActivity.skapiecOffersTasks.clear();
+        mapActivity.nearbyShopsTasks.clear();
         isLoading = false;
     }
 

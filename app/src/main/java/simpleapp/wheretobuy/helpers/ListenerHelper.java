@@ -83,7 +83,7 @@ public class ListenerHelper {
                         float toY;
                         int screenHeight = UsefulFunctions.getScreenHeight(parentActivity);
 
-                        if (parentActivity.stateStart.getVisibility() == View.VISIBLE) {
+                        if (parentActivity.stateCommunication.getVisibility() == View.VISIBLE) {
                             if (gestureDetector.onTouchEvent(motionEvent)) {
                                 parentActivity.changeUserLocation();
                             }

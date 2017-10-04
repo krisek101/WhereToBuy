@@ -88,13 +88,13 @@
             android:layout_height="25dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:src="@drawable/clear"/>
+            android:src="@drawable/pause"/>
 
     </RelativeLayout>
 
     <TextView
         android:id="@+id/state_start"
-        android:text="Trwa ustalanie lokalizacji.."
+        android:text="@string/state_localization"
         android:layout_width="300dp"
         android:layout_height="wrap_content"
         android:textSize="16sp"

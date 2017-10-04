@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
@@ -88,6 +87,7 @@ import simpleapp.wheretobuy.constants.Constants;
 import simpleapp.wheretobuy.constants.UsefulFunctions;
 import simpleapp.wheretobuy.fragments.TabOffersFragment;
 import simpleapp.wheretobuy.fragments.TabShopsFragment;
+import simpleapp.wheretobuy.helpers.CommunicationHelper;
 import simpleapp.wheretobuy.helpers.ListenerHelper;
 import simpleapp.wheretobuy.helpers.LoadingHelper;
 import simpleapp.wheretobuy.models.AutoCompleteResult;
@@ -125,7 +125,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public FloatingActionButton getMyLocationButton;
     public TextView getMyLocation;
     public TextView changeLocation;
-    public TextView stateStart;
+    public TextView stateCommunication;
     public RelativeLayout stateLoading;
     public RelativeLayout stateFinish;
 
@@ -139,13 +139,15 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public LatLng tempPosition;
     public boolean getMyLocationButtonClicked = false;
     public AlertDialog changeLocationDialog;
-    public LoadingHelper loadingHelper;
     public boolean isOnline;
+    private String lastQuery = "";
 
-    // Partners
+    // Helpers
     public GooglePartner googleHelper;
     public NokautPartner nokautHelper;
     public SkapiecPartner skapiecHelper;
+    public LoadingHelper loadingHelper;
+    public CommunicationHelper communicationHelper;
 
     // Tasks
     public RequestQueue queue;
@@ -161,7 +163,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
-        isOnline = UsefulFunctions.isOnline(MapActivity.this);
+        initialActions();
         prepareGoogleMap();
         requestPermissions();
         initUI();
@@ -171,9 +173,13 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         initViewPagers();
         changeFooterInfo();
         checkOnline();
+        initAdapters();
+    }
 
-        offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
-        shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops, this);
+    // initial functions
+    private void initialActions(){
+        isOnline = UsefulFunctions.isOnline(MapActivity.this);
+        communicationHelper = new CommunicationHelper(this);
     }
 
     private void initPartners() {
@@ -213,7 +219,11 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         }, delay);
     }
 
-    // initial functions
+    private void initAdapters(){
+        offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
+        shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops, this);
+    }
+
     private void initUI() {
         searchText = (FloatingSearchView) findViewById(R.id.search_text);
         queue = Volley.newRequestQueue(this);
@@ -226,7 +236,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         getMyLocationButton = (FloatingActionButton) findViewById(R.id.getMyLocationButton);
         getMyLocation = (TextView) findViewById(R.id.getMyLocation);
         changeLocation = (TextView) findViewById(R.id.goToSearchingCentre);
-        stateStart = (TextView) findViewById(R.id.state_start);
+        stateCommunication = (TextView) findViewById(R.id.state_start);
         stateLoading = (RelativeLayout) findViewById(R.id.state_loading);
         stateFinish = (RelativeLayout) findViewById(R.id.state_finish);
         initSearchText();
@@ -334,14 +344,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         searchText.setDismissFocusOnItemSelection(true);
 
         // on clear button click
-        searchText.setOnClearSearchActionListener(new FloatingSearchView.OnClearSearchActionListener() {
-            @Override
-            public void onClearSearchClicked() {
-                clearResults();
-                searchText.hideProgress();
-                hideFabOptions();
-            }
-        });
+
 
         // on microphone click
         searchText.setOnMenuItemClickListener(new FloatingSearchView.OnMenuItemClickListener() {
@@ -365,7 +368,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         searchText.setOnQueryChangeListener(new FloatingSearchView.OnQueryChangeListener() {
             @Override
             public void onSearchTextChanged(String oldQuery, final String newQuery) {
-                clearResults();
+                autoCompleteResults.clear();
                 if (newQuery.length() <= 2) {
                     if (lastAutoCompleteResults != null) {
                         for (AutoCompleteResult autoCompleteResult : lastAutoCompleteResults) {
@@ -377,7 +380,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     }
                 } else {
                     if (UsefulFunctions.isOnline(MapActivity.this)) {
-                        // update list from Nokaut API
+                        // update list
                         searchText.showProgress();
                         nokautHelper.showAutoCompleteProducts(newQuery);
                     } else {
@@ -395,15 +398,17 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             public void onSuggestionClicked(SearchSuggestion searchSuggestion) {
                 AutoCompleteResult autoCompleteResult = (AutoCompleteResult) searchSuggestion;
                 if (!autoCompleteResult.getType().equals("error")) {
+                    clearResults();
+                    loadingHelper.isLoading = true;
+                    changeFooterInfo();
                     if (autoCompleteResult.getId().equals("all")) {
-                        autoCompleteResults.clear();
                         nokautHelper.getMoreProducts(autoCompleteResult.getName(), 0);
                     } else {
                         nokautHelper.getOffers(autoCompleteResult);
                     }
                     skapiecHelper.searchMostCommonCategory(autoCompleteResult.getName(), 0);
                     addLastAutoCompleteResult(autoCompleteResult);
-                    changeFooterInfo();
+                    lastQuery = autoCompleteResult.getBody();
                 } else {
                     autoCompleteResult.setName("");
                 }
@@ -438,15 +443,29 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         searchText.setOnFocusChangeListener(new FloatingSearchView.OnFocusChangeListener() {
             @Override
             public void onFocus() {
-                clearResults();
                 if (lastAutoCompleteResults != null) {
                     searchText.swapSuggestions(lastAutoCompleteResults);
                 }
+                searchText.setOnClearSearchActionListener(null);
             }
 
             @Override
             public void onFocusCleared() {
-
+                if (!lastQuery.isEmpty()) {
+                    searchText.setSearchText(lastQuery);
+                } else {
+                    searchText.getClearButton().setVisibility(View.INVISIBLE);
+                }
+                searchText.setOnClearSearchActionListener(new FloatingSearchView.OnClearSearchActionListener() {
+                    @Override
+                    public void onClearSearchClicked() {
+                        clearResults();
+                        searchText.hideProgress();
+                        hideFabOptions();
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 13));
+                        lastQuery = "";
+                    }
+                });
             }
         });
     }
@@ -540,7 +559,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     public void checkUsersSettingGPS() {
         if (UsefulFunctions.isOnline(this)) {
-            showCommunicationSearchingLocation();
+            communicationHelper.showInfo(getResources().getString(R.string.state_localization));
             if (mGoogleApiClient != null) {
                 if (!mGoogleApiClient.isConnected()) {
                     mGoogleApiClient.connect();
@@ -576,8 +595,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 });
             }
         } else {
-            stateStart.setTextColor(getResources().getColor(R.color.red));
-            stateStart.setText(R.string.error_internet_conn);
+            communicationHelper.showError(getResources().getString(R.string.error_internet_conn));
         }
     }
 
@@ -669,7 +687,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     double latitude = mLastLocation.getLatitude();
                     double longitude = mLastLocation.getLongitude();
                     userLocation = new LatLng(latitude, longitude);
-                    new GeocodeTask(this, userLocation, stateStart).execute();
+                    new GeocodeTask(this, userLocation, stateCommunication).execute();
 
                     // if change location is more than 100 meters, then refresh searching
                     if (oldLocation.latitude != -1) {
@@ -826,45 +844,17 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     // Offers
     public void showCustomDialog(List<Offer> offersList, ShopLocation shopLocation) {
-        if(!offersList.isEmpty()) {
+        if (!offersList.isEmpty()) {
             CustomDialog newFragment = CustomDialog.newInstance(offersList, shopLocation, this);
             newFragment.show(getSupportFragmentManager(), "dialog");
         }
     }
 
-    public void showCommunicationSearchingLocation() {
-        stateStart.setTextColor(getResources().getColor(R.color.black));
-        stateStart.setText(R.string.state_localization);
-    }
-
     public void changeFooterInfo() {
-        if (autoCompleteResults.isEmpty()) {
-            // set Visibility
-            stateStart.setVisibility(View.VISIBLE);
-            stateLoading.setVisibility(View.GONE);
-            stateFinish.setVisibility(View.GONE);
-            // show address
-            showCommunicationSearchingLocation();
-            if (isOnline) {
-                if (userLocation != null) {
-                    new GeocodeTask(this, userLocation, stateStart).execute();
-                }
-            } else {
-                stateStart.setTextColor(getResources().getColor(R.color.red));
-                stateStart.setText(R.string.error_internet_conn);
-            }
-        } else {
-            if (loadingHelper.isLoading) {
-                // set Visibility
-                ImageView cancelImageView = (ImageView) findViewById(R.id.cancel_button);
-                cancelImageView.setColorFilter(getResources().getColor(R.color.black), PorterDuff.Mode.SRC_ATOP);
-
-                stateFinish.setVisibility(View.GONE);
-                stateStart.setVisibility(View.GONE);
-                stateLoading.setVisibility(View.VISIBLE);
-            } else if (!offers.isEmpty()) {
-                // set Visibility
-                stateStart.setVisibility(View.GONE);
+        if (!loadingHelper.isLoading) {
+            if (!offers.isEmpty()) {
+                // show offers
+                stateCommunication.setVisibility(View.GONE);
                 stateLoading.setVisibility(View.GONE);
                 stateFinish.setVisibility(View.VISIBLE);
 
@@ -877,8 +867,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops, this);
 
                 int outside, nearMe = 0;
-                for(Offer o : offers){
-                    if(o.getShop().getBestDistance() != -1){
+                for (Offer o : offers) {
+                    if (o.getShop().getBestDistance() != -1) {
                         nearMe++;
                     }
                 }
@@ -955,7 +945,22 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 // Offers
                 sortOffers(sortOffersStatus[0], offersListView);
                 middleText.setText(getString(R.string.best_offer) + " " + UsefulFunctions.getPriceFormat(offers.get(0).getPrice()) + "");
+            } else {
+                // show address
+                if (isOnline) {
+                    if (userLocation != null) {
+                        communicationHelper.showInfo(getResources().getString(R.string.state_localization));
+                        new GeocodeTask(this, userLocation, stateCommunication).execute();
+                    }
+                } else {
+                    communicationHelper.showError(getResources().getString(R.string.error_internet_conn));
+                }
             }
+        } else {
+            // show loading status
+            stateFinish.setVisibility(View.GONE);
+            stateCommunication.setVisibility(View.GONE);
+            stateLoading.setVisibility(View.VISIBLE);
         }
     }
 
@@ -1093,7 +1098,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
 
     // Shops
     public void clearShopMarkers() {
-        for (Shop shop : shops) {
+        List<Shop> tempShops = new ArrayList<>(shops);
+        for (Shop shop : tempShops) {
             if (!shop.getLocations().isEmpty()) {
                 for (ShopLocation shopLocation : shop.getLocations()) {
                     shopLocation.getMarker().remove();
@@ -1128,7 +1134,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     public List<Offer> getOffersByShop(Shop shop) {
         List<Offer> offersByShop = new ArrayList<>();
         List<Offer> tempOffers = new ArrayList<>(offers);
-        for(Offer o : tempOffers){
+        for (Offer o : tempOffers) {
             if (o.getShop().equals(shop)) {
                 offersByShop.add(o);
             }

@@ -64,7 +64,11 @@ public class GeocodeTask extends AsyncTask<Void, Void, String> {
             case "shopLocation":
                 break;
             default:
-                callbackView.setText(address);
+                if(address.equals(Constants.UNKNOWN_ADDRESS)){
+                    callbackView.setText("X: " + position.longitude + ", Y: " + position.latitude);
+                } else {
+                    callbackView.setText(address);
+                }
                 break;
         }
     }

@@ -21,6 +21,7 @@ public class onResponseSkapiecOfferTask extends AsyncTask<Void, Void, List<Shop>
     private Offer offer;
     private String tag;
     private List<Offer> offers = new ArrayList<>();
+    private List<Shop> shops = new ArrayList<>();
 
     public onResponseSkapiecOfferTask(MapActivity mapActivity, JSONObject response, Offer offer, String tag) {
         this.mapActivity = mapActivity;
@@ -80,6 +81,7 @@ public class onResponseSkapiecOfferTask extends AsyncTask<Void, Void, List<Shop>
                     }
                     shop.setTotalCountOffers(1);
                     mapActivity.shops.add(shop);
+//                    shops.add(shop);
                     o.setShop(shop);
                     offers.add(o);
                     // get locations
