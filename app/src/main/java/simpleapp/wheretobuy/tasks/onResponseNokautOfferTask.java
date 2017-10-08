@@ -21,7 +21,6 @@ public class onResponseNokautOfferTask extends AsyncTask<Void, Void, List<Shop>>
     private JSONObject response;
     private String tag;
     private List<Offer> offers = new ArrayList<>();
-    private List<Shop> shops = new ArrayList<>();
 
     public onResponseNokautOfferTask(MapActivity mapActivity, JSONObject response, String tag) {
         this.mapActivity = mapActivity;
@@ -54,7 +53,6 @@ public class onResponseNokautOfferTask extends AsyncTask<Void, Void, List<Shop>>
                             }
                             shopModel.setTotalCountOffers(1);
                             mapActivity.shops.add(shopModel);
-//                            shops.add(shopModel);
                             offerModel.setShop(shopModel);
                             offers.add(offerModel);
 

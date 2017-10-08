@@ -136,34 +136,34 @@ public class Offer implements Comparable<Offer> {
             return 0;
         }
     }
-
-    @Override
-    public boolean equals(Object obj) {
-        if(obj != null) {
-            if (obj.getClass().isInstance(this)) {
-                Offer obj2 = (Offer) obj;
-                if (this.getTitle().equals(obj2.getTitle())) {
-                    if(this.getShop() != null && obj2.getShop() != null) {
-                        if (this.getShop().equals(obj2.getShop())) {
-                            if (this.getPrice() == obj2.getPrice()) {
-                                return true;
-                            } else {
-                                return false;
-                            }
-                        } else {
-                            return false;
-                        }
-                    } else {
-                        return false;
-                    }
-                } else {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        } else {
-            return false;
-        }
-    }
+//
+//    @Override
+//    public boolean equals(Object obj) {
+//        if(obj != null) {
+//            if (obj.getClass().isInstance(this)) {
+//                Offer obj2 = (Offer) obj;
+//                if (this.getTitle().equals(obj2.getTitle())) {
+//                    if(this.getShop() != null && obj2.getShop() != null) {
+//                        if (this.getShop().equals(obj2.getShop())) {
+//                            if (this.getPrice() == obj2.getPrice()) {
+//                                return true;
+//                            } else {
+//                                return false;
+//                            }
+//                        } else {
+//                            return false;
+//                        }
+//                    } else {
+//                        return false;
+//                    }
+//                } else {
+//                    return false;
+//                }
+//            } else {
+//                return false;
+//            }
+//        } else {
+//            return false;
+//        }
+//    }
 }

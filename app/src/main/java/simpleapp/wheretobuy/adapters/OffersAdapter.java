@@ -85,6 +85,8 @@ public class OffersAdapter extends ArrayAdapter<Offer> {
             if (offer.getPhotoId() != null) {
                 offerUrl = offer.getPhotoId();
                 Picasso.with(context).load(offerUrl).into(photo);
+            } else {
+                photo.setImageResource(R.drawable.no_photo);
             }
         }
         switch (type) {

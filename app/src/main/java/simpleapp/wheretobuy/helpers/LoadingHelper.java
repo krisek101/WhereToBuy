@@ -1,7 +1,5 @@
 package simpleapp.wheretobuy.helpers;
 
-import android.os.AsyncTask;
-
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.LatLngBounds;
@@ -82,7 +80,7 @@ public class LoadingHelper {
             builder.include(mapActivity.userLocation);
         }
         LatLngBounds bounds = builder.build();
-        CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, 100);
+        CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, 140);
         if (has) {
             mapActivity.mMap.animateCamera(cu);
         }
@@ -93,29 +91,28 @@ public class LoadingHelper {
         for (String loader : loaders.keySet()) {
             mapActivity.queue.cancelAll(loader);
         }
-
         loaders.clear();
 
         // cancel all AsyncTasks
-        for (onResponseNokautOfferTask task : mapActivity.nokautOffersTasks) {
-            if (task.getStatus().equals(AsyncTask.Status.RUNNING)) {
-                task.cancel(true);
-            }
-        }
         for (onResponseSkapiecOfferTask task : mapActivity.skapiecOffersTasks) {
-            if (task.getStatus().equals(AsyncTask.Status.RUNNING)) {
-                task.cancel(true);
-            }
+            task.cancel(true);
+        }
+        for (onResponseNokautOfferTask task : mapActivity.nokautOffersTasks) {
+            task.cancel(true);
         }
         for (onResponseGoogleNearbyShops task : mapActivity.nearbyShopsTasks) {
-            if (task.getStatus().equals(AsyncTask.Status.RUNNING)) {
-                task.cancel(true);
-            }
+            task.cancel(true);
         }
-        mapActivity.nokautOffersTasks.clear();
+
         mapActivity.skapiecOffersTasks.clear();
+        mapActivity.nokautOffersTasks.clear();
         mapActivity.nearbyShopsTasks.clear();
+
         isLoading = false;
+    }
+
+    public void stopLoadingByTag(String tag) {
+        loaders.put(tag, 0);
     }
 
 }

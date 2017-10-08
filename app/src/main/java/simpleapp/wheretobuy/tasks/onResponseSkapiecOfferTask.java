@@ -1,6 +1,7 @@
 package simpleapp.wheretobuy.tasks;
 
 import android.os.AsyncTask;
+import android.os.Handler;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -21,7 +22,6 @@ public class onResponseSkapiecOfferTask extends AsyncTask<Void, Void, List<Shop>
     private Offer offer;
     private String tag;
     private List<Offer> offers = new ArrayList<>();
-    private List<Shop> shops = new ArrayList<>();
 
     public onResponseSkapiecOfferTask(MapActivity mapActivity, JSONObject response, Offer offer, String tag) {
         this.mapActivity = mapActivity;
@@ -81,7 +81,6 @@ public class onResponseSkapiecOfferTask extends AsyncTask<Void, Void, List<Shop>
                     }
                     shop.setTotalCountOffers(1);
                     mapActivity.shops.add(shop);
-//                    shops.add(shop);
                     o.setShop(shop);
                     offers.add(o);
                     // get locations
@@ -123,6 +122,7 @@ public class onResponseSkapiecOfferTask extends AsyncTask<Void, Void, List<Shop>
     @Override
     protected void onPostExecute(List<Shop> uniqueShops) {
         super.onPostExecute(uniqueShops);
+        mapActivity.skapiecHelper.offers.remove(offer);
         for (Shop shop : uniqueShops) {
             mapActivity.googleHelper.searchNearbyShops(shop, Constants.SEARCH_RADIUS);
         }
@@ -130,6 +130,23 @@ public class onResponseSkapiecOfferTask extends AsyncTask<Void, Void, List<Shop>
 //        Log.i("SKAPIEC ASYNCTASK", (endTime - startTime) / 1e6 + "");
         mapActivity.offers.addAll(offers);
         mapActivity.offersAdapter.notifyDataSetChanged();
-        mapActivity.loadingHelper.changeLoader(-1, tag);
+
+        // get next offer
+        if(!mapActivity.skapiecHelper.offers.isEmpty()) {
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mapActivity.skapiecHelper.getOfferInfo(mapActivity.skapiecHelper.offers.get(0));
+                }
+            }, 100);
+        } else {
+            mapActivity.loadingHelper.stopLoadingByTag(tag);
+            // start searching in nokaut
+            if (mapActivity.skapiecHelper.autoCompleteResult.getId().equals("all")) {
+                mapActivity.nokautHelper.getMoreProducts(mapActivity.skapiecHelper.autoCompleteResult.getName(), 0);
+            } else {
+                mapActivity.nokautHelper.getOffers(mapActivity.skapiecHelper.autoCompleteResult);
+            }
+        }
     }
 }

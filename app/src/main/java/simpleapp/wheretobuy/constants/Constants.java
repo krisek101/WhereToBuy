@@ -26,8 +26,8 @@ public class Constants {
 
     // Tokens and Keys
     public static final String NOKAUT_TOKEN = "1/c1d3e6f5f27737fe2cb0dfd5b0046743ae4297da1c446fbe1219b8db7475367c";
-//    public static final String WEB_API_GOOGLE_KEY = "AIzaSyA_C2NPat715q0hNN_S_ltWo2e1agdP1jI";
-    public static final String WEB_API_GOOGLE_KEY = "AIzaSyDflSpLotdTPuGtyeZEPNHHNZGVDsft040";
+    public static final String WEB_API_GOOGLE_KEY = "AIzaSyA_C2NPat715q0hNN_S_ltWo2e1agdP1jI";
+//    public static final String WEB_API_GOOGLE_KEY = "AIzaSyDflSpLotdTPuGtyeZEPNHHNZGVDsft040";
 
     // Constants
     public static final int SPLASH_TIME = 500;
@@ -39,7 +39,8 @@ public class Constants {
             "Picco.pl", "niszczarki-biurowe.pl AUTORYZOWANY SKLEP KOBRA HSM", "XXLgastro.pl", "Toyka Poland Leader Branży", "Szybkikoszyk.pl", "Balmea.pl", "zaopatrzenieBHP.pl", "Pasaż Biurowy",
             "Fashally.com - Twoje gadżety", "Medical Depot", "Mercateo Polska", "ale.pl", "www.al.to", "Amazon.de", "Zadowolenie.pl", "winmar.pl", "marcusfoto.pl", "electro.pl", "sferis.pl", "sklep ishock.pl", "vipelektrogadzet.pl",
             "neo24.pl", "CORE trends", "TaniaKsiazka.pl", "aurelus.pl", "www.epinokio.pl", "bonprix", "Iloko", "4HOME", "Urwis.pl", "Balladine.com", "MaxDrogeria.pl", "SuperKoszyk.pl", "aptekamini.pl",
-            "kufereknatury.pl", "iziaja.pl", "BIBEES.PL", "herbalbeauty.pl", "trueco.pl", "Salt and Pepper", "Szabloneria.pl", "Czas na buty", "La Redoute", "Naklej-to.pl", "Deco+Strefa"};
+            "kufereknatury.pl", "iziaja.pl", "BIBEES.PL", "herbalbeauty.pl", "trueco.pl", "Salt and Pepper", "Szabloneria.pl", "Czas na buty", "La Redoute", "Naklej-to.pl", "Deco+Strefa", "mango.pl", "mediae",
+            "notebook-torby.pl"};
     public static final String SORT_BY_PRICE = "SORT_BY_PRICE";
     public static final String SORT_BY_DISTANCE = "SORT_BY_DISTANCE";
     public static final int MAX_AUTOCOMPLETE_RESULTS = 7;

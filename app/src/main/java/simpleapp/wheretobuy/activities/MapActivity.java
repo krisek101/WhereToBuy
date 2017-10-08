@@ -177,7 +177,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
 
     // initial functions
-    private void initialActions(){
+    private void initialActions() {
         isOnline = UsefulFunctions.isOnline(MapActivity.this);
         communicationHelper = new CommunicationHelper(this);
     }
@@ -219,7 +219,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         }, delay);
     }
 
-    private void initAdapters(){
+    private void initAdapters() {
         offersAdapter = new OffersAdapter(this, R.layout.offer, offers, "offer_footer");
         shopsAdapter = new ShopsAdapter(this, R.layout.shop, shops, this);
     }
@@ -401,12 +401,13 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     clearResults();
                     loadingHelper.isLoading = true;
                     changeFooterInfo();
-                    if (autoCompleteResult.getId().equals("all")) {
-                        nokautHelper.getMoreProducts(autoCompleteResult.getName(), 0);
-                    } else {
-                        nokautHelper.getOffers(autoCompleteResult);
-                    }
+                    skapiecHelper.autoCompleteResult = autoCompleteResult;
                     skapiecHelper.searchMostCommonCategory(autoCompleteResult.getName(), 0);
+//                    if (autoCompleteResult.getId().equals("all")) {
+//                        nokautHelper.getMoreProducts(autoCompleteResult.getName(), 0);
+//                    } else {
+//                        nokautHelper.getOffers(autoCompleteResult);
+//                    }
                     addLastAutoCompleteResult(autoCompleteResult);
                     lastQuery = autoCompleteResult.getBody();
                 } else {

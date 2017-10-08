@@ -33,7 +33,8 @@ public class SkapiecPartner {
     private MapActivity mapActivity;
     private String basicAuth = "Basic " + Base64.encodeToString((Constants.SKAPIEC_LOGIN + ":" + Constants.SKAPIEC_PASS).getBytes(), Base64.NO_WRAP);
     private List<String> categories = new ArrayList<>();
-//    private List<Offer> offers = new ArrayList<>();
+    public List<Offer> offers = new ArrayList<>();
+    public AutoCompleteResult autoCompleteResult;
 
     public SkapiecPartner(String startLink, MapActivity mapActivity) {
         this.startLink = startLink;
@@ -42,6 +43,7 @@ public class SkapiecPartner {
 
     // method
     public void searchMostCommonCategory(String input, int offset) {
+        offers.clear();
         String url = getSearchOffersFilterUrl(input, offset);
         Log.i("LINK", url);
         requestSearchMostCommonCategory(url, Constants.TAG_MOST_COMMON_CATEGORY_SKAPIEC, input);
@@ -51,11 +53,11 @@ public class SkapiecPartner {
         if (categoryID != null) {
             String url = getSearchOffersByCategoryIdUrl(input, offset, categoryID);
             Log.i("LINK", url);
-            requestSearchOffersWithBestCategory(url, Constants.TAG_PRODUCTS_SKAPIEC);
+            requestSearchOffersWithBestCategory(url, Constants.TAG_PRODUCTS_SKAPIEC, input, categoryID);
         }
     }
 
-    private void getOfferInfo(Offer o) {
+    public void getOfferInfo(Offer o) {
         String url = getBestPriceOffersUrl(o.getId());
         requestOfferInfo(url, Constants.TAG_OFFERS_SKAPIEC, o);
     }
@@ -160,13 +162,13 @@ public class SkapiecPartner {
         mapActivity.queue.add(jsonObjRequest);
     }
 
-    private void requestSearchOffersWithBestCategory(String url, final String tag) {
+    private void requestSearchOffersWithBestCategory(String url, final String tag, final String input, final String categoryID) {
         mapActivity.loadingHelper.changeLoader(1, tag);
         JsonObjectRequest jsonObjRequest = new JsonObjectRequest(com.android.volley.Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
                 try {
-                    onResponseSearchOffersByCategory(response);
+                    onResponseSearchOffersByCategory(response, input, categoryID);
                     mapActivity.loadingHelper.changeLoader(-1, tag);
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -201,6 +203,9 @@ public class SkapiecPartner {
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                if(!offers.isEmpty()) {
+                    offers.remove(0);
+                }
                 mapActivity.loadingHelper.changeLoader(-1, tag);
             }
         }) {
@@ -288,23 +293,17 @@ public class SkapiecPartner {
         }
     }
 
-    private void onResponseSearchOffersByCategory(JSONObject response) throws JSONException {
+    private void onResponseSearchOffersByCategory(JSONObject response, String input, String categoryID) throws JSONException {
         List<Offer> tempOffers = getOffersListFromJSON(response);
-//        offers.addAll(tempOffers);
-//        int offset = response.getJSONObject("pagination").getInt("offset");
-//        if (response.getJSONObject("pagination").has("next") && offset < 20) {
-//            searchOffersByCategoryId(input, offset + 20);
-//        } else {
-//            boolean finish = false;
-//            for (int i = 0; i < 10; i++) {
-//                if (i == 9) {
-//                    finish = true;
-//                }
-//                this.getOfferInfo(offers.get(i), finish);
-//            }
-//        }
-        for (Offer offer : tempOffers) {
-            this.getOfferInfo(offer);
+        offers.addAll(tempOffers);
+        int offset = response.getJSONObject("pagination").getInt("offset");
+        if (response.getJSONObject("pagination").has("next") && offset <= 300) {
+            searchOffersByCategoryId(input, offset + 20, categoryID);
+        } else {
+//            for (Offer offer : offers) {
+            if(!offers.isEmpty()) {
+                this.getOfferInfo(offers.get(0));
+            }
         }
     }
 
@@ -319,7 +318,10 @@ public class SkapiecPartner {
             String id = jsonObject.getString("id_skapiec");
             String categoryID = jsonObject.getString("link").replace("https://www.skapiec.pl/cat/", "").replaceAll("/comp/" + id, "");
             String link = jsonObject.getString("link");
-            String photo = jsonObject.getString("small_photo");
+            String photo = null;
+            if(!jsonObject.isNull("small_photo")) {
+                photo = jsonObject.getString("small_photo");
+            }
             Offer offer = new Offer(Constants.OFFER_SKAPIEC, 4, name, link, categoryID, photo, id);
             if (!mapActivity.offers.contains(offer)) {
                 offers.add(offer);
